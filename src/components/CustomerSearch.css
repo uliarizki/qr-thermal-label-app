@@ -1,0 +1,142 @@
+/* src/components/CustomerSearch.css */
+.customer-search {
+  padding: 24px;
+  background: white;
+  border-radius: 12px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 14px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  margin-bottom: 20px;
+  transition: border-color 0.3s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.loading {
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+  padding: 20px;
+}
+
+.no-data {
+  text-align: center;
+  color: #999;
+  padding: 40px 20px;
+  font-size: 16px;
+}
+
+.customer-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.customer-card {
+  padding: 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  background: #fafafa;
+}
+
+.customer-card:hover {
+  border-color: #6366f1;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+  transform: translateY(-2px);
+}
+
+.customer-card.selected {
+  border-color: #6366f1;
+  background: #f0f4ff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+}
+
+.customer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 8px;
+}
+
+.customer-id {
+  font-weight: 700;
+  color: #6366f1;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.customer-name {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.customer-details p {
+  margin: 6px 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.selected-info {
+  background: linear-gradient(135deg, #f0f4ff 0%, #fafbff 100%);
+  border: 2px solid #6366f1;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.selected-info h3 {
+  margin: 0 0 16px 0;
+  color: #333;
+  font-size: 16px;
+}
+
+.customer-detail {
+  background: white;
+  padding: 16px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.customer-detail p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.customer-detail strong {
+  color: #333;
+}
+
+.print-btn {
+  width: 100%;
+  padding: 12px;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.print-btn:hover {
+  background: #4f46e5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
