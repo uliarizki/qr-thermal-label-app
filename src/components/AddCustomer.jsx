@@ -1,6 +1,7 @@
 // src/components/AddCustomer.jsx
 import { useState } from 'react';
 import { addCustomer } from '../utils/googleSheets';
+import { addHistory } from '../utils/history';
 import './AddCustomer.css';
 
 export default function AddCustomer() {
@@ -57,14 +58,22 @@ export default function AddCustomer() {
       setMessageType('success');
       setMessage(`✅ Customer "${formData.nama}" berhasil ditambahkan ke Sheets!`);
 
+      // Log history
+      addHistory('ADD', {
+        customerId: formData.id || 'AUTO',
+        nama: formData.nama,
+        kota: formData.kota,
+        cabang: formData.cabang,
+      });
+
       // Reset form
       setFormData({
         id: '',
         nama: '',
         kota: '',
         sales: '',
-        pabrik: 'BT SMG',
-        cabang: '',
+        pabrik: '',
+        cabang: 'BT SMG',
         telp: ''
       });
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import jsQR from 'jsqr'
+import { addHistory } from '../utils/history'
 import './components.css'
 
 export default function QRScanner({ onScan }) {
@@ -9,20 +10,80 @@ export default function QRScanner({ onScan }) {
   const [isScanning, setIsScanning] = useState(true)
   const [lastScanned, setLastScanned] = useState(null)
   const [error, setError] = useState(null)
+  const [permissionDenied, setPermissionDenied] = useState(false)
 
   useEffect(() => {
+    const stopTracks = () => {
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(track => track.stop())
+        videoRef.current.srcObject = null
+      }
+    }
+
     const startCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' }
-        })
+        if (!window.isSecureContext) {
+          setHasCamera(false)
+          setError('Akses kamera membutuhkan HTTPS atau localhost.')
+          setPermissionDenied(true)
+          return
+        }
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+          setHasCamera(false)
+          setError('Browser tidak mendukung akses kamera. Coba gunakan Chrome/Firefox versi terbaru dengan HTTPS.')
+          setPermissionDenied(true)
+          return
+        }
+
+        // hentikan stream lama sebelum meminta yang baru
+        stopTracks()
+
+        const requestStream = async () => {
+          // coba environment, fallback ke default "user"
+          try {
+            return await navigator.mediaDevices.getUserMedia({
+              video: {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+              },
+              audio: false
+            })
+          } catch (err) {
+            // fallback jika environment tidak tersedia
+            return await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false
+            })
+          }
+        }
+
+        const stream = await requestStream()
         if (videoRef.current) {
           videoRef.current.srcObject = stream
+          videoRef.current.setAttribute('playsinline', 'true')
+          videoRef.current.muted = true
+          // Chrome kadang butuh play() agar memicu permintaan izin
+          const playPromise = videoRef.current.play()
+          if (playPromise?.catch) {
+            playPromise.catch(() => {})
+          }
         }
+        setHasCamera(true)
+        setError(null)
+        setPermissionDenied(false)
       } catch (error) {
         console.error('Error accessing camera:', error)
         setHasCamera(false)
-        setError('Kamera tidak tersedia. Pastikan Anda memberikan izin akses kamera.')
+        const msg =
+          error?.name === 'NotAllowedError'
+            ? 'Akses kamera ditolak. Beri izin kamera di browser.'
+            : error?.name === 'NotFoundError'
+              ? 'Kamera tidak ditemukan. Pastikan perangkat memiliki kamera.'
+              : 'Kamera tidak tersedia. Pastikan Anda memberikan izin akses kamera.'
+        setError(msg)
+        setPermissionDenied(error?.name === 'NotAllowedError')
       }
     }
 
@@ -31,9 +92,7 @@ export default function QRScanner({ onScan }) {
     }
 
     return () => {
-      if (videoRef.current?.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach(track => track.stop())
-      }
+      stopTracks()
     }
   }, [isScanning])
 
@@ -60,6 +119,14 @@ export default function QRScanner({ onScan }) {
               setLastScanned(data)
               setIsScanning(false)
               setError(null)
+              
+              // Log history
+              addHistory('SCAN', {
+                customerId: data.it,
+                nama: data.nt,
+                kota: data.at || '',
+              })
+              
               onScan(data)
             }
           } catch (e) {
@@ -81,6 +148,18 @@ export default function QRScanner({ onScan }) {
         <div className="error-box">
           ❌ {error}
         </div>
+        {permissionDenied && (
+          <button
+            className="rescan-btn"
+            onClick={() => {
+              setIsScanning(true)
+              setPermissionDenied(false)
+              setError(null)
+            }}
+          >
+            🔄 Aktifkan kamera kembali
+          </button>
+        )}
       </div>
     )
   }

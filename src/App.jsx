@@ -4,13 +4,25 @@ import QRScanner from './components/QRScanner';
 import CustomerSearch from './components/CustomerSearch';
 import AddCustomer from './components/AddCustomer';
 import PrintPreview from './components/PrintPreview.jsx';
+import History from './components/History';
 import { getCustomers } from './utils/googleSheets';
 import './App.css';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('scan');
+  const getStoredTab = () => {
+    if (typeof window === 'undefined') return 'scan';
+    return localStorage.getItem('qr:lastTab') || 'scan';
+  };
+
+  const [activeTab, setActiveTab] = useState(getStoredTab);
   const [scannedData, setScannedData] = useState(null);
   const [customers, setCustomers] = useState([]);
+
+  // Persist last tab
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem('qr:lastTab', activeTab);
+  }, [activeTab]);
 
   // Load semua customer (opsional, kalau mau pre-load list)
   useEffect(() => {
@@ -67,6 +79,12 @@ export default function App() {
         >
           ➕ Customer Baru
         </button>
+        <button
+          className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          📊 History
+        </button>
       </nav>
 
       <main className="app-content">
@@ -82,6 +100,8 @@ export default function App() {
         {activeTab === 'add' && (
           <AddCustomer onAdd={handleAddCustomer} />
         )}
+
+        {activeTab === 'history' && <History />}
 
         {activeTab === 'preview' && scannedData && (
           <PrintPreview data={scannedData} />

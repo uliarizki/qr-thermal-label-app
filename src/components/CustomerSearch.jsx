@@ -1,54 +1,117 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { searchCustomer } from '../utils/googleSheets';
+import { addHistory } from '../utils/history';
 import PrintPreview from './PrintPreview';
 import './CustomerSearch.css';
+
+const STORAGE_KEY = 'qr:lastSearchQuery';
 
 export default function CustomerSearch() {
   const [searchQuery, setSearchQuery] = useState('');
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [hasResult, setHasResult] = useState(false); // hanya true setelah request selesai
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const lastQueryRef = useRef('');
+  const debounceRef = useRef(null);
 
-const handleSearch = async (e) => {
-  const query = e.target.value;
+  const handleSearch = async (input) => {
+    const query = typeof input === 'string' ? input : input?.target?.value || '';
   setSearchQuery(query);
   lastQueryRef.current = query;
+    setHasResult(false); // reset state sebelum request baru
+
+    // bersihkan debounce sebelumnya
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
 
   if (!query.trim()) {
     setCustomers([]);
     setSelectedCustomer(null);
     setLoading(false);
+      setHasResult(false);
     return;
   }
 
   setLoading(true);
   
   // Debounce: tunggu 300ms sebelum call API
-  const timeoutId = setTimeout(async () => {
-    if (lastQueryRef.current !== query) {
-      setLoading(false);
+    debounceRef.current = setTimeout(async () => {
+      const currentQuery = lastQueryRef.current;
+      if (currentQuery !== query) {
       return;
     }
 
+      try {
     const result = await searchCustomer(query);
 
+        // Pastikan masih relevan
     if (lastQueryRef.current !== query) {
-      setLoading(false);
       return;
     }
 
     if (result.success) {
-      setCustomers(result.data || []);
+          const customersData = result.data || [];
+          setCustomers(customersData);
+          
+          // Log history
+          addHistory('SEARCH', {
+            query: query,
+            resultCount: customersData.length,
+          });
     } else {
       setCustomers([]);
       console.error(result.error);
-    }
+          
+          // Log history meski tidak ada hasil
+          addHistory('SEARCH', {
+            query: query,
+            resultCount: 0,
+          });
+        }
+      } catch (err) {
+        console.error('searchCustomer error:', err);
+        setCustomers([]);
+      } finally {
+        if (lastQueryRef.current === query) {
     setLoading(false);
+          setHasResult(true);
+        }
+      }
   }, 300);
+  };
 
-  return () => clearTimeout(timeoutId);
-};
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
+  // Load last query on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      // set state and trigger search with saved query
+      setSearchQuery(saved);
+      lastQueryRef.current = saved;
+      handleSearch(saved);
+    }
+  }, []);
+
+  // Persist query locally
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (searchQuery) {
+      localStorage.setItem(STORAGE_KEY, searchQuery);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }, [searchQuery]);
 
   const handleSelectCustomer = (customer) => {
     setSelectedCustomer(customer);
@@ -66,7 +129,7 @@ const handleSearch = async (e) => {
 
       {loading && <p className="loading">⏳ Loading...</p>}
 
-      {!loading && searchQuery.trim() && customers.length === 0 && (
+      {!loading && hasResult && searchQuery.trim() && customers.length === 0 && (
         <p className="no-data">❌ Tidak ada hasil</p>
       )}
 

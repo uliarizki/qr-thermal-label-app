@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
-import html2pdf from 'html2pdf.js';
+//import html2pdf from 'html2pdf.js';
 import './components.css';
+import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
 
-const DEFAULT_SIZE = { width: 165, height: 120 }; // sebelumnya 55x40 atau 80x60
+const DEFAULT_SIZE = { width: 55, height: 40 }; // sebelumnya 55x40 atau 80x60
 
 export default function PrintPreview({ data }) {
   const previewRef = useRef(null);
@@ -15,33 +16,8 @@ export default function PrintPreview({ data }) {
     : DEFAULT_SIZE;
 
   const handlePrint = async () => {
-    const element = previewRef.current;
-    const size = currentSize;
-
-    const safeName = (data.nt || 'CUSTOMER')
-      .replace(/[\\/:*?"<>|]/g, '')
-      .slice(0, 30);
-
-        const opt = {
-        margin: [0, 0, 0, 0],
-        filename: `${safeName}_${data.it}.pdf`,
-        image: { type: 'png', quality: 0.98 },
-        html2canvas: {
-            scale: 1,
-            useCORS: true,
-            backgroundColor: '#ffffff',
-            letterRendering: true,
-        },
-        jsPDF: {
-            unit: 'mm',
-            format: [currentSize.width, currentSize.height], // 55 x 40
-            orientation: 'landscape',
-        },
-        pagebreak: { mode: ['avoid-all'] },
-        };
-
     try {
-      await html2pdf().set(opt).from(element).save();
+      await generateLabelPdfVector(data, currentSize); // { width, height } dalam mm
       alert('✅ PDF berhasil di-generate!');
     } catch (err) {
       console.error('PDF error:', err);
@@ -49,8 +25,16 @@ export default function PrintPreview({ data }) {
     }
   };
 
+  const maxPreviewWidthPx = 260; // kira2 lebar card, bisa kamu geser
+  const mmToPx = 4;              // asumsi 1mm ≈ 4px di layar
+
+  const previewScale = Math.min(
+    maxPreviewWidthPx / (currentSize.width * mmToPx),
+    1
+  );
+
   return (
-    <div className="print-preview-container">
+    <div className="customer-detail">
       <div className="print-controls">
         <h3>🖨️ Print Settings</h3>
 
@@ -99,34 +83,24 @@ export default function PrintPreview({ data }) {
 
       <div className="preview-container">
         <h3>Preview Label</h3>
-        <div
-          className="preview-wrapper"
-          style={{
-            width: `${currentSize.width * 3}px`,
-            height: `${currentSize.height * 3}px`,
-            border: '2px solid #2563eb',
-            borderRadius: '4px',
-            overflow: 'hidden',
-            margin: '0 auto',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          }}
-        >
-          {/* SATU-SATUNYA ELEMEN YANG DIPakai PDF + PREVIEW */}
-        <div
-        ref={previewRef}
-        className="label-root"
-        style={{
-            width: `${currentSize.width}mm`,
-            height: `${currentSize.height - 1}mm`,  // dikurangi 1mm untuk buffer
-            padding: '1mm',
-            background: 'white',
-            boxSizing: 'border-box',
-            transformOrigin: 'top left',
-        }}
-        >
-        <LabelContent data={data} labelSize={currentSize} />
-        </div>
+        <div className="preview-wrapper">
 
+          {/* SATU-SATUNYA ELEMEN YANG DIPakai PDF + PREVIEW */}
+          <div
+            ref={previewRef}
+            className="label-root"
+            style={{
+              width: `${currentSize.width}mm`,
+              height: `${currentSize.height}mm`,
+              padding: '0mm',
+              background: 'white',
+              boxSizing: 'border-box',
+              transform: `scale(${previewScale})`,
+              transformOrigin: 'top left',
+            }}
+          >
+            <LabelContent data={data} labelSize={currentSize} />
+          </div>
         </div>
       </div>
     </div>
@@ -187,7 +161,7 @@ function LabelContent({ data, labelSize }) {
         </div>
         <div
           style={{
-            fontSize: `${size.height * 0.24}px`,
+            fontSize: `${size.height * 0.32}px`,
             fontWeight: 'bold',
             textAlign: 'center',
             lineHeight: 1.1,
