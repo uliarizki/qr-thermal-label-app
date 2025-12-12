@@ -1,34 +1,55 @@
 // src/utils/history.js
 // Utility untuk manage history di localStorage
 
-const HISTORY_KEY = 'qr:history';
-const MAX_HISTORY = 100; // maksimal 100 item history
+// import { addHistoryToDB, getHistoryFromDB, initDB } from './db'; // DISABLED due to stability issues
+import { logActivity } from './googleSheets'; // Import Cloud Logger
+
+const LOCAL_STORAGE_KEY = 'qr:history_log';
 
 /**
- * Tambah history baru
- * @param {string} action - 'ADD', 'SEARCH', atau 'SCAN'
+ * Tambah history baru (Syncs to Cloud + Local Storage)
+ * @param {string} action - 'ADD', 'SEARCH', 'SCAN'
  * @param {object} details - detail action
  */
-export function addHistory(action, details = {}) {
+export async function addHistory(action, details = {}) {
   if (typeof window === 'undefined') return;
 
   try {
-    const history = getHistory();
     const newItem = {
-      timestamp: new Date().toISOString(),
       action,
       details,
+      timestamp: new Date().toISOString() // Ensure timestamp matches
     };
 
-    // Tambah di awal array (terbaru di atas)
+    // 1. Save Local (LocalStorage - More Stable than IndexedDB)
+    const existingStr = localStorage.getItem(LOCAL_STORAGE_KEY);
+    let history = existingStr ? JSON.parse(existingStr) : [];
+
+    // Add to top
     history.unshift(newItem);
 
-    // Batasi jumlah history
-    if (history.length > MAX_HISTORY) {
-      history.splice(MAX_HISTORY);
+    // Limit to last 100 items to save space
+    if (history.length > 100) {
+      history = history.slice(0, 100);
     }
 
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(history));
+
+    // 2. Sync to Cloud (Background)
+    // We don't await this to keep UI snappy
+    const userJson = localStorage.getItem('qr:auth_user');
+    let username = 'guest';
+    if (userJson) {
+      try {
+        const user = JSON.parse(userJson);
+        username = user.username;
+      } catch (e) { }
+    }
+
+    // Convert details to string for Sheet
+    const detailsStr = JSON.stringify(details);
+    logActivity(username, action, detailsStr).catch(err => console.error("Cloud Sync Failed:", err));
+
   } catch (error) {
     console.error('Error saving history:', error);
   }
@@ -36,16 +57,17 @@ export function addHistory(action, details = {}) {
 
 /**
  * Ambil semua history
- * @returns {Array}
+ * @returns {Promise<Array>}
  */
-export function getHistory() {
+export async function getHistory() {
   if (typeof window === 'undefined') return [];
 
   try {
-    const stored = localStorage.getItem(HISTORY_KEY);
-    return stored ? JSON.parse(stored) : [];
+    const str = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const data = str ? JSON.parse(str) : [];
+    return Array.isArray(data) ? data : [];
   } catch (error) {
-    console.error('Error reading history:', error);
+    console.error('Error reading history locally:', error);
     return [];
   }
 }
@@ -53,10 +75,10 @@ export function getHistory() {
 /**
  * Filter history berdasarkan action
  * @param {string} action - 'ADD', 'SEARCH', 'SCAN', atau 'ALL'
- * @returns {Array}
+ * @returns {Promise<Array>}
  */
-export function filterHistoryByAction(action) {
-  const history = getHistory();
+export async function filterHistoryByAction(action) {
+  const history = await getHistory();
   if (action === 'ALL') return history;
   return history.filter(item => item.action === action);
 }
@@ -64,9 +86,9 @@ export function filterHistoryByAction(action) {
 /**
  * Clear semua history
  */
-export function clearHistory() {
+export async function clearHistory() {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(HISTORY_KEY);
+  localStorage.removeItem(LOCAL_STORAGE_KEY);
 }
 
 /**

@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
 //import html2pdf from 'html2pdf.js';
 import './components.css';
 import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
+import { Icons } from './Icons';
 
 const DEFAULT_SIZE = { width: 55, height: 40 }; // sebelumnya 55x40 atau 80x60
 
@@ -10,18 +12,60 @@ export default function PrintPreview({ data }) {
   const [customWidth, setCustomWidth] = useState(DEFAULT_SIZE.width);
   const [customHeight, setCustomHeight] = useState(DEFAULT_SIZE.height);
   const [useCustom, setUseCustom] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false); // Status: false -> 'loading' -> 'success'
 
   const currentSize = useCustom
     ? { width: customWidth, height: customHeight }
     : DEFAULT_SIZE;
 
   const handlePrint = async () => {
+    if (isPrinting) return;
+
+    setIsPrinting('loading');
     try {
       await generateLabelPdfVector(data, currentSize); // { width, height } dalam mm
-      alert('✅ PDF berhasil di-generate!');
+
+      // Success State
+      setIsPrinting('success');
+      toast.success('PDF Saved Successfully!', {
+        duration: 3000,
+        icon: '📥',
+        style: {
+          background: '#333',
+          color: '#fff',
+        },
+      });
+
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        setIsPrinting(false);
+      }, 2000);
+
     } catch (err) {
       console.error('PDF error:', err);
-      alert('❌ Gagal generate PDF');
+      setIsPrinting(false);
+      toast.error('Gagal generate PDF');
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      const { blob, filename } = await generateLabelPdfVector(data, { ...currentSize, returnBlob: true });
+      const file = new File([blob], filename, { type: 'application/pdf' });
+
+      if (navigator.share) {
+        await navigator.share({
+          files: [file],
+          title: 'Label PDF',
+          text: 'Print this label using Rongta App',
+        });
+        toast.success('Shared successfully!');
+      } else {
+        toast.error('Browser tidak support Share');
+      }
+    } catch (err) {
+      console.error('Share error:', err);
+      toast.error('Gagal Share PDF');
     }
   };
 
@@ -76,9 +120,59 @@ export default function PrintPreview({ data }) {
           )}
         </div>
 
-        <button onClick={handlePrint} className="print-btn">
-          📥 Generate PDF & Print
-        </button>
+        <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+          {/* TOMBOL KIRI: DOWNLOAD PDF */}
+          <button
+            onClick={handlePrint}
+            className={`print-btn ${isPrinting === 'success' ? 'success' : ''}`}
+            disabled={isPrinting === 'loading'}
+            style={{
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '12px'
+            }}
+          >
+            {isPrinting === 'loading' ? (
+              <>
+                <span className="animate-spin"><Icons.Refresh size={20} /></span>
+                <span>Generating...</span>
+              </>
+            ) : isPrinting === 'success' ? (
+              <>
+                <Icons.Check size={20} />
+                <span>Saved!</span>
+              </>
+            ) : (
+              <>
+                <Icons.Download size={20} />
+                <span>Save PDF</span>
+              </>
+            )}
+          </button>
+
+          {/* TOMBOL KANAN: DIRECT SHARE (MOBILE ONLY) */}
+          {navigator.share && (
+            <button
+              onClick={handleShare}
+              className="print-btn"
+              style={{
+                flex: 1,
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                padding: '12px'
+              }}
+            >
+              <Icons.Share size={20} />
+              <span>Direct Share</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="preview-container">
@@ -195,18 +289,18 @@ function LabelContent({ data, labelSize }) {
           {data.nt}
         </div>
         <div
-            style={{ 
+          style={{
             fontSize: `${size.height * 0.25}px`,
-            fontWeight: 700, 
-            }}>
-            {data.at}
+            fontWeight: 700,
+          }}>
+          {data.at}
         </div>
-        <div 
-            style={{ 
+        <div
+          style={{
             fontSize: `${size.height * 0.25}px`,
-            fontWeight: 700, 
-            }}>
-            {data.pt}
+            fontWeight: 700,
+          }}>
+          {data.pt}
         </div>
         <div
           style={{

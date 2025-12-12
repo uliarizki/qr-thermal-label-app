@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import jsQR from 'jsqr'
 import { addHistory } from '../utils/history'
-import './components.css'
+import './Components.css'
 
 export default function QRScanner({ onScan }) {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
+  const streamRef = useRef(null) // Dedicated stream ref for cleanup
   const [hasCamera, setHasCamera] = useState(true)
   const [isScanning, setIsScanning] = useState(true)
   const [lastScanned, setLastScanned] = useState(null)
@@ -14,9 +15,17 @@ export default function QRScanner({ onScan }) {
 
   useEffect(() => {
     const stopTracks = () => {
-      if (videoRef.current?.srcObject) {
-        videoRef.current.srcObject.getTracks().forEach(track => track.stop())
-        videoRef.current.srcObject = null
+      // Robust cleanup
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => {
+          track.stop();
+          track.enabled = false; // Disable specifically
+        });
+        streamRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.pause(); // Explicit pause
+        videoRef.current.srcObject = null;
       }
     }
 
@@ -36,11 +45,10 @@ export default function QRScanner({ onScan }) {
           return
         }
 
-        // hentikan stream lama sebelum meminta yang baru
+        // Hentikan stream lama
         stopTracks()
 
         const requestStream = async () => {
-          // coba environment, fallback ke default "user"
           try {
             return await navigator.mediaDevices.getUserMedia({
               video: {
@@ -51,7 +59,6 @@ export default function QRScanner({ onScan }) {
               audio: false
             })
           } catch (err) {
-            // fallback jika environment tidak tersedia
             return await navigator.mediaDevices.getUserMedia({
               video: true,
               audio: false
@@ -60,11 +67,12 @@ export default function QRScanner({ onScan }) {
         }
 
         const stream = await requestStream()
+        streamRef.current = stream // Simpan stream di ref yang aman
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream
           videoRef.current.setAttribute('playsinline', 'true')
           videoRef.current.muted = true
-          // Chrome kadang butuh play() agar memicu permintaan izin
           const playPromise = videoRef.current.play()
           if (playPromise?.catch) {
             playPromise.catch(() => { })
@@ -76,12 +84,11 @@ export default function QRScanner({ onScan }) {
       } catch (error) {
         console.error('Error accessing camera:', error)
         setHasCamera(false)
-        const msg =
-          error?.name === 'NotAllowedError'
-            ? 'Akses kamera ditolak. Beri izin kamera di browser.'
-            : error?.name === 'NotFoundError'
-              ? 'Kamera tidak ditemukan. Pastikan perangkat memiliki kamera.'
-              : 'Kamera tidak tersedia. Pastikan Anda memberikan izin akses kamera.'
+        const msg = error?.name === 'NotAllowedError'
+          ? 'Akses kamera ditolak. Beri izin kamera di browser.'
+          : error?.name === 'NotFoundError'
+            ? 'Kamera tidak ditemukan. Pastikan perangkat memiliki kamera.'
+            : 'Kamera tidak tersedia. Pastikan Anda memberikan izin akses kamera.'
         setError(msg)
         setPermissionDenied(error?.name === 'NotAllowedError')
       }
@@ -89,6 +96,8 @@ export default function QRScanner({ onScan }) {
 
     if (isScanning) {
       startCamera()
+    } else {
+      stopTracks()
     }
 
     return () => {
@@ -104,12 +113,12 @@ export default function QRScanner({ onScan }) {
       const canvas = canvasRef.current
 
       if (video?.readyState === video?.HAVE_ENOUGH_DATA && canvas) {
-        const ctx = canvas.getContext('2d')
+        const context = canvas.getContext('2d', { willReadFrequently: true });
         canvas.width = video.videoWidth
         canvas.height = video.videoHeight
 
-        ctx.drawImage(video, 0, 0)
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        context.drawImage(video, 0, 0)
+        const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
         const code = jsQR(imageData.data, imageData.width, imageData.height)
 
         if (code) {

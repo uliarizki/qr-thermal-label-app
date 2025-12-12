@@ -1,23 +1,33 @@
-// src/components/History.jsx
 import { useState, useEffect } from 'react';
 import { getHistory, filterHistoryByAction, clearHistory, formatTimestamp } from '../utils/history';
+import { Icons } from './Icons';
 import './History.css';
 
-export default function History() {
+export default function History({ onSelect }) {
   const [history, setHistory] = useState([]);
   const [filter, setFilter] = useState('ALL');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
+  // ... (useEffect and loadHistory same)
+
   useEffect(() => {
     loadHistory();
-    // Refresh setiap 5 detik untuk update "X menit lalu"
-    const interval = setInterval(loadHistory, 5000);
-    return () => clearInterval(interval);
+
+    const checkInterval = setInterval(() => {
+      loadHistory();
+    }, 2000);
+
+    return () => clearInterval(checkInterval);
   }, [filter]);
 
-  const loadHistory = () => {
-    const filtered = filterHistoryByAction(filter);
-    setHistory(filtered);
+  const loadHistory = async () => {
+    let data;
+    if (filter !== 'ALL') {
+      data = await filterHistoryByAction(filter);
+    } else {
+      data = await getHistory();
+    }
+    setHistory(Array.isArray(data) ? data : []);
   };
 
   const handleClear = () => {
@@ -28,27 +38,21 @@ export default function History() {
 
   const getActionIcon = (action) => {
     switch (action) {
-      case 'ADD':
-        return '➕';
-      case 'SEARCH':
-        return '🔍';
-      case 'SCAN':
-        return '📱';
-      default:
-        return '📋';
+      case 'ADD': return <Icons.Plus size={20} color="#48bb78" />;
+      case 'SEARCH': return <Icons.Search size={20} color="#3182ce" />;
+      case 'SCAN': return <Icons.Scan size={20} color="#ed8936" />;
+      case 'SEARCH_SELECT': return <Icons.User size={20} color="#805ad5" />;
+      default: return <Icons.History size={20} color="#718096" />;
     }
   };
 
   const getActionLabel = (action) => {
     switch (action) {
-      case 'ADD':
-        return 'Tambah Customer';
-      case 'SEARCH':
-        return 'Cari Customer';
-      case 'SCAN':
-        return 'Scan QR Code';
-      default:
-        return action;
+      case 'ADD': return 'Ditambahkan';
+      case 'SEARCH': return 'Dicari';
+      case 'SCAN': return 'Discan';
+      case 'SEARCH_SELECT': return 'Dilihat';
+      default: return action;
     }
   };
 
@@ -56,7 +60,12 @@ export default function History() {
     const { timestamp, action, details } = item;
 
     return (
-      <div key={index} className="history-item">
+      <div
+        key={index}
+        className="history-item clickable"
+        onClick={() => onSelect && onSelect(item)}
+        title="Klik untuk aksi cepat"
+      >
         <div className="history-icon">{getActionIcon(action)}</div>
         <div className="history-content">
           <div className="history-header">
@@ -82,6 +91,11 @@ export default function History() {
                 )}
               </div>
             )}
+            {action === 'SEARCH_SELECT' && (
+              <div>
+                <strong>{details.customerName || 'Customer'}</strong>
+              </div>
+            )}
             {action === 'SCAN' && (
               <div>
                 <strong>{details.nama || 'Customer'}</strong>
@@ -89,6 +103,9 @@ export default function History() {
                 {details.kota && <span> - {details.kota}</span>}
               </div>
             )}
+          </div>
+          <div className="history-tap-hint" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Icons.ArrowLeft size={12} style={{ transform: 'rotate(180deg)' }} /> Tap to Open
           </div>
         </div>
       </div>
@@ -98,7 +115,9 @@ export default function History() {
   return (
     <div className="history-container page-card">
       <div className="history-header-section">
-        <h2>📊 History</h2>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Icons.History size={24} /> History
+        </h2>
         <div className="history-controls">
           <select
             value={filter}
@@ -108,14 +127,16 @@ export default function History() {
             <option value="ALL">Semua</option>
             <option value="ADD">Tambah Customer</option>
             <option value="SEARCH">Pencarian</option>
+            <option value="SEARCH_SELECT">Dilihat</option>
             <option value="SCAN">Scan QR</option>
           </select>
           {history.length > 0 && (
             <button
               onClick={() => setShowClearConfirm(true)}
               className="clear-history-btn"
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
-              🗑️ Hapus History
+              <Icons.Close size={16} /> Hapus
             </button>
           )}
         </div>
@@ -148,7 +169,7 @@ export default function History() {
         </div>
       ) : (
         <div className="history-list">
-          {history.map((item, index) => renderHistoryItem(item, index))}
+          {Array.isArray(history) && history.map((item, index) => renderHistoryItem(item, index))}
         </div>
       )}
     </div>

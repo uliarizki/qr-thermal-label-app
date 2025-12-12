@@ -139,7 +139,33 @@
   background: #f3f4f6;
   border-color: #d1d5db;
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  /* Sedikit lebih shadow */
+}
+
+.history-item.clickable {
+  cursor: pointer;
+  border-left: 4px solid #D4AF37;
+  /* Gold indicator */
+}
+
+.history-item.clickable:active {
+  transform: translateY(1px);
+}
+
+.history-tap-hint {
+  font-size: 11px;
+  color: #D4AF37;
+  margin-top: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.history-item.clickable:hover .history-tap-hint {
+  opacity: 1;
 }
 
 .history-icon {
@@ -202,5 +228,3 @@
     width: 100%;
   }
 }
-
-

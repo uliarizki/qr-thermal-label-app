@@ -1,0 +1,182 @@
+/* DigitalCard.css (Premium Gold Edition with Brush Font) */
+
+.digital-card-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: transparent;
+}
+
+.digital-card {
+    position: relative;
+    width: 500px;
+    height: 300px;
+    border-radius: 16px;
+    overflow: hidden;
+    /* PREMIUM GOLD TO BLACK GRADIENT */
+    background: linear-gradient(135deg, #0e0e0e 0%, #1a1a1a 60%, #2d2d2d 100%);
+    color: white;
+    font-family: 'Inter', sans-serif;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border: 2px solid #D4AF37;
+}
+
+/* Gold Sheen Overlay */
+.card-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(212, 175, 55, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 0% 100%, rgba(212, 175, 55, 0.05) 0%, transparent 40%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Header */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 25px;
+    z-index: 1;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-img {
+    width: 45px;
+    height: 45px;
+    object-fit: contain;
+    /* Mix blend mode to remove white background from logo if needed */
+    mix-blend-mode: multiply;
+    filter: contrast(1.2);
+    background: white;
+    /* Fallback frame */
+    border-radius: 50%;
+    padding: 2px;
+}
+
+.brand-name {
+    font-family: var(--font-brand);
+    /* THE NEW FONT */
+    font-weight: 400;
+    font-size: 1.6rem;
+    color: #D4AF37;
+    /* GOLD TEXT */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    margin-top: 5px;
+    /* Adjust alignment for script font */
+}
+
+.card-type {
+    font-size: 0.65rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #D4AF37 0%, #B59024 100%);
+    color: #000;
+    padding: 5px 10px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Body */
+.card-body {
+    display: flex;
+    flex: 1;
+    padding: 0 25px;
+    align-items: center;
+    z-index: 1;
+    gap: 20px;
+}
+
+.info-section {
+    flex: 1;
+}
+
+.customer-name-large {
+    margin: 0 0 15px 0;
+    font-size: 1.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    line-height: 1.1;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-item label {
+    font-size: 0.55rem;
+    color: #D4AF37;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    opacity: 0.9;
+}
+
+.info-item span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #f0f0f0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* QR Section */
+.qr-section-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.qr-box {
+    background: white;
+    padding: 6px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    border: 2px solid #D4AF37;
+}
+
+.scan-me {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #D4AF37;
+    opacity: 0.9;
+}
+
+/* Footer */
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 25px;
+    font-size: 0.6rem;
+    opacity: 0.7;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.4);
+    color: #ccc;
+    font-weight: 300;
+}

@@ -25,18 +25,23 @@ async function callApi(action, payload = null) {
   }
 
   try {
-    const params = new URLSearchParams({ action });
+    // 1. Setup Parameters
+    // Untuk POST, payload dikirim di body sebagai string JSON
+    // Action tetap bisa di query param atau body, kita taruh di body saja biar clean
 
-    let body = null;
-    if (payload) {
-      body = new URLSearchParams({
-        data: JSON.stringify(payload),
-      });
-    }
+    // Construct Body
+    const bodyData = {
+      action: action,
+      ...payload
+    };
 
-    const res = await fetch(`${WEB_APP_URL}?${params.toString()}`, {
+    // Note: GAS `doPost` menerima event `e.postData.contents`
+    // Kita kirim raw string JSON via 'no-cors' mode tidak bisa dapat response,
+    // jadi kita pakai standard POST. Pastikan CORS enabled di GAS Script code (ContentService return)
+
+    const res = await fetch(WEB_APP_URL, {
       method: 'POST',
-      body,
+      body: JSON.stringify(bodyData),
     });
 
     if (!res.ok) {
@@ -46,7 +51,7 @@ async function callApi(action, payload = null) {
     const json = await res.json();
 
     if (!json.success) {
-      throw new Error(json.data || 'Unknown error from Apps Script');
+      throw new Error(json.error || 'Unknown error from Apps Script'); // API returns { success: false, error: 'msg' }
     }
 
     return { success: true, data: json.data };
@@ -71,6 +76,37 @@ function formatCustomer(row) {
 }
 
 // === EXPORTS ===
+
+/* --- AUTHENTICATION API --- */
+
+export async function loginUser(username, password) {
+  return await callApi('login', { username, password });
+}
+
+export async function registerUser(username, password, role, creatorRole) {
+  return await callApi('register', { username, password, role, creatorRole });
+}
+
+export async function requestPasswordReset(username) {
+  return await callApi('requestPasswordReset', { username });
+}
+
+export async function verifyOTPAndReset(username, otp, newPassword) {
+  return await callApi('resetPasswordWithOTP', { username, otp, newPassword });
+}
+
+/* --- HISTORY & LOGGING --- */
+
+export async function logActivity(user, activity, details) {
+  // Fire and forget, don't await blocking UI
+  callApi('logActivity', { user, activity, details });
+}
+
+export async function getGlobalHistory(userRole) {
+  return await callApi('getGlobalHistory', { userRole });
+}
+
+/* --- CUSTOMER DATA --- */
 
 export function getLastUpdate() {
   if (typeof window === 'undefined') return null;
@@ -112,27 +148,6 @@ export async function getCustomers(forceReload = false) {
   return { success: false, error: result.error };
 }
 
-// Search customer (Client Side Filtering)
-// Ini helper jika kita mau filter manual dari luar, tapi sebaiknya logic search pindah ke UI component
-// agar lebih reaktif dengan data yang sudah di-load di App.
-export async function searchCustomer(query) {
-  // Fallback jika belum load data
-  if (!customerCache) {
-    await getCustomers();
-  }
-
-  if (!customerCache) return { success: false, data: [] };
-
-  const lowerQ = query.toLowerCase();
-  const filtered = customerCache.filter(c =>
-    (c.nama && c.nama.toLowerCase().includes(lowerQ)) ||
-    (c.id && c.id.toLowerCase().includes(lowerQ)) ||
-    (c.kota && c.kota.toLowerCase().includes(lowerQ))
-  );
-
-  return { success: true, data: filtered };
-}
-
 // Tambah customer baru
 export async function addCustomer(customerData) {
   if (!customerData.nama || !customerData.kota || !customerData.cabang) {
@@ -142,23 +157,10 @@ export async function addCustomer(customerData) {
     };
   }
 
-  const result = await callApi('addCustomer', customerData);
+  const result = await callApi('addCustomer', { customer: customerData });
 
   if (!result.success) {
     return { success: false, error: result.error };
-  }
-
-  // Opsi: Langsung tambahkan ke cache tanpa reload semua
-  // Agar UX lebih cepat
-  if (customerCache) {
-    // Kita perlu format sesuai balikan API atau construct sendiri
-    // Asumsi row baru ada di result.data (tergantung implementasi GAS)
-    // Kalau GAS tidak return full row, kita append manual 'optimistic update'
-    // Tapi amannya kita mark cache dirty atau force reload next time.
-    // Untuk sekarang: kita force fetch next time atau append manual jika yakin.
-
-    // Kita clear cache agar user dipaksa fetch ulang saat kembali ke list (atau panggil getCustomers(true))
-    // Atau lebih baik kita append jika kita tahu formatnya.
   }
 
   return { success: true, data: result.data };

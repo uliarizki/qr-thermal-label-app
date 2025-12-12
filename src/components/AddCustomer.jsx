@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { addCustomer } from '../utils/googleSheets';
 import { addHistory } from '../utils/history';
+import { Icons } from './Icons';
 import './AddCustomer.css';
 
 export default function AddCustomer({ onAdd }) {
@@ -16,6 +17,8 @@ export default function AddCustomer({ onAdd }) {
   });
 
   const [loading, setLoading] = useState(false);
+
+  // ... (handleChange same)
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -82,12 +85,17 @@ export default function AddCustomer({ onAdd }) {
 
   return (
     <div className="add-customer page-card">
-      <h2>📝 Tambah Customer Baru</h2>
+      <h2 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Icons.Plus size={24} />
+        Tambah Customer Baru
+      </h2>
 
       <form onSubmit={handleSubmit}>
         {/* MANDATORY FIELDS */}
         <div className="form-section">
-          <h3>⭐ Data Wajib</h3>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: '#f59e0b' }}>⭐</span> Data Wajib
+          </h3>
 
           <div className="form-group">
             <label>Nama Customer <span className="required">*</span></label>
@@ -116,6 +124,7 @@ export default function AddCustomer({ onAdd }) {
           </div>
 
           <div className="form-group">
+            {/* ... */}
             <label>Cabang <span className="required">*</span></label>
             <select
               name="cabang"
@@ -187,8 +196,19 @@ export default function AddCustomer({ onAdd }) {
         </div>
 
         {/* BUTTON */}
-        <button type="submit" disabled={loading} className="submit-btn">
-          {loading ? '⏳ Menambahkan...' : '✅ Tambah Customer'}
+        {/* BUTTON */}
+        <button type="submit" disabled={loading} className="submit-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          {loading ? (
+            <>
+              <span className="spin"><Icons.Refresh size={20} /></span>
+              <span>Menambahkan...</span>
+            </>
+          ) : (
+            <>
+              <Icons.Check size={20} />
+              <span>Tambah Customer</span>
+            </>
+          )}
         </button>
       </form>
     </div>

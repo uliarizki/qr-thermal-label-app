@@ -10,6 +10,15 @@
   margin: 0 0 24px 0;
   color: #333;
   font-size: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.add-customer h2 svg {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px;
 }
 
 .form-section {

@@ -56,8 +56,17 @@
 }
 
 @keyframes blink {
-  0%, 49%, 100% { opacity: 1; }
-  50%, 99% { opacity: 0.5; }
+
+  0%,
+  49%,
+  100% {
+    opacity: 1;
+  }
+
+  50%,
+  99% {
+    opacity: 0.5;
+  }
 }
 
 .error-box {
@@ -346,7 +355,7 @@
   margin-bottom: 5px;
 }
 
-.size-selector > label {
+.size-selector>label {
   display: block;
   margin-bottom: 10px;
   color: #333;
@@ -411,7 +420,7 @@
   margin-top: 10px;
 }
 
-.custom-inputs > div {
+.custom-inputs>div {
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -451,6 +460,14 @@
 .print-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+}
+
+.print-btn.success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  cursor: default;
+  pointer-events: none;
+  box-shadow: none;
+  transform: none;
 }
 
 .preview-container {
@@ -534,6 +551,7 @@
 
 @media print {
   .label-root {
-    transform: none !important;   /* supaya PDF/print pakai ukuran asli, tidak 3x */
+    transform: none !important;
+    /* supaya PDF/print pakai ukuran asli, tidak 3x */
   }
 }

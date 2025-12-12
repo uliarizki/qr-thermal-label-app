@@ -1,27 +1,53 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import QRCode from 'react-qr-code';
+
+import { Icons } from './Icons';
 import { addHistory } from '../utils/history';
-import PrintPreview from './PrintPreview';
 import './CustomerSearch.css';
 
 const STORAGE_KEY = 'qr:lastSearchQuery';
 
-export default function CustomerSearch({ customers = [], onSelect, onSync, isSyncing, lastUpdated }) {
+export default function CustomerSearch({
+  customers = [],
+  onSelect,
+  onSync,
+  isSyncing,
+  lastUpdated,
+  initialQuery
+}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredCustomers, setFilteredCustomers] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [activeView, setActiveView] = useState('grid'); // 'grid' | 'list'
 
-  // Initial load query
+  // 1. Handle Initial Query (e.g. from History)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (initialQuery) {
+      setSearchQuery(initialQuery);
+    }
+  }, [initialQuery]);
+
+  // 2. Initial Load from LocalStorage (only if no initialQuery provided)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !initialQuery) {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) setSearchQuery(saved);
-    }
-  }, []);
 
-  // Save query
+      const savedView = localStorage.getItem('qr:viewMode');
+      if (savedView) setActiveView(savedView);
+    }
+  }, [initialQuery]);
+
+  // 3. Persist View Preference
+  const toggleView = (mode) => {
+    setActiveView(mode);
+    localStorage.setItem('qr:viewMode', mode);
+  };
+
+  // 4. Persist Search Query
+  // 4. Persist Search Query
   useEffect(() => {
     if (typeof window !== 'undefined') {
       if (searchQuery) localStorage.setItem(STORAGE_KEY, searchQuery);
@@ -29,7 +55,28 @@ export default function CustomerSearch({ customers = [], onSelect, onSync, isSyn
     }
   }, [searchQuery]);
 
-  // Filter effect with Debounce & Smart Logic
+  // 4b. Log Search History on Unmount
+  const queryRef = useRef(searchQuery);
+  useEffect(() => {
+    queryRef.current = searchQuery;
+  }, [searchQuery]);
+
+  useEffect(() => {
+    return () => {
+      const finalQuery = queryRef.current;
+      if (finalQuery && finalQuery.trim().length > 2) {
+        // Debounce history? Or just log.
+        // History util usually handles some deduplication or we can trust the user won't spam page switching.
+        addHistory('SEARCH', {
+          query: finalQuery,
+          timestamp: new Date()
+        });
+      }
+    };
+  }, []);
+
+
+  // 5. Filter Logic (Debounced)
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!searchQuery.trim()) {
@@ -37,65 +84,97 @@ export default function CustomerSearch({ customers = [], onSelect, onSync, isSyn
         return;
       }
 
-      // 1. Pecah query jadi array kata (tokens), buang spasi kosong
       const terms = searchQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
 
       const results = customers.filter(c => {
-        // 2. Gabungkan semua field relevan jadi satu "haystack"
         const haystack = `${c.id || ''} ${c.nama || ''} ${c.kota || ''} ${c.pabrik || ''} ${c.sales || ''}`.toLowerCase();
-
-        // 3. Cek apakah SEMUA kata di query ada di haystack (AND Logic)
         return terms.every(term => haystack.includes(term));
       });
 
       setFilteredCustomers(results);
-    }, 300); // Debounce 300ms
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [searchQuery, customers]);
 
-  const handleSelectCustomer = (customer) => {
-    setSelectedCustomer(customer);
-    // Add history on select
-    addHistory('SEARCH_SELECT', {
-      query: searchQuery,
-      customerId: customer.id,
-      customerName: customer.nama
-    });
+  // 6. Handle Selection
+  const handleCardClick = (customer) => {
+    if (onSelect) {
+      onSelect(customer);
+    }
   };
 
   return (
     <div className="customer-search page-card">
+      {/* SEARCH HEADER */}
       <div className="search-header-container">
-        <input
-          type="text"
-          placeholder="🔍 Cari berdasarkan Nama, ID, atau Kota..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="search-input"
-        />
+        <div style={{ position: 'relative', flex: 1 }}>
+          <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#999' }}>
+            <Icons.Search size={20} />
+          </div>
+          <input
+            type="text"
+            placeholder="Cari berdasarkan Nama, ID, atau Kota..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="search-input"
+            style={{ paddingLeft: 40 }}
+          />
+        </div>
         <button
           className="sync-btn"
           onClick={onSync}
           disabled={isSyncing}
           title="Ambil data terbaru dari Google Sheets"
+          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
         >
-          {isSyncing ? '⏳Sync' : '🔄 Sync'}
+          {isSyncing ? (
+            <>
+              <span className="spin"><Icons.Refresh size={18} /></span>
+              <span>Sync</span>
+            </>
+          ) : (
+            <>
+              <Icons.Refresh size={18} />
+              <span>Sync</span>
+            </>
+          )}
         </button>
       </div>
 
+      {/* VIEW TOGGLE CONTROLS */}
+      <div className="view-controls">
+        <button
+          className={`view-btn ${activeView === 'grid' ? 'active' : ''}`}
+          onClick={() => toggleView('grid')}
+          title="Tampilan Grid (Kartu)"
+        >
+          <span style={{ fontSize: 16 }}>🔲</span> Grid
+        </button>
+        <button
+          className={`view-btn ${activeView === 'list' ? 'active' : ''}`}
+          onClick={() => toggleView('list')}
+          title="Tampilan List (Daftar)"
+        >
+          <span style={{ fontSize: 16 }}>≣</span> List
+        </button>
+      </div>
+
+      {/* INFO META */}
       {lastUpdated && (
         <p className="last-updated">
           Data terakhir: {lastUpdated.toLocaleTimeString()} {lastUpdated.toLocaleDateString()}
         </p>
       )}
 
+      {/* SKELETON LOADING */}
       {isSyncing && (
         <div style={{ marginBottom: 20 }}>
           <Skeleton count={3} height={40} style={{ marginBottom: 10 }} />
         </div>
       )}
 
+      {/* EMPTY STATES */}
       {!isSyncing && searchQuery.trim() && filteredCustomers.length === 0 && (
         <p className="no-data">❌ Tidak ada hasil. Coba "Sync" jika data barusan diinput.</p>
       )}
@@ -104,63 +183,40 @@ export default function CustomerSearch({ customers = [], onSelect, onSync, isSyn
         <p className="no-data">💡 Ketik untuk mencari dari local data</p>
       )}
 
-      <div className="customer-list">
+      {/* CUSTOMER LIST */}
+      <div className={`customer-list ${activeView}-view`}>
         {filteredCustomers.map((customer, idx) => (
           <div
             key={customer.id || idx}
-            className={`customer-card ${selectedCustomer?.id === customer.id ? 'selected' : ''
-              }`}
-            onClick={() => handleSelectCustomer(customer)}
+            className="customer-card"
+            onClick={() => handleCardClick(customer)}
           >
             <div className="customer-header">
               <span className="customer-id">{customer.id}</span>
               <span className="customer-name">{customer.nama}</span>
             </div>
             <div className="customer-details">
-              <p>📍 {customer.kota}</p>
-              <p>📱 {customer.telp}</p>
-              <p>🏭 {customer.pabrik}</p>
-            </div>
-            {customer.kode && (
-              <div className="customer-qr">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(
-                    customer.kode
-                  )}`}
-                  alt="QR"
-                  loading="lazy"
-                />
+              <div className="detail-item city" title="Kota">
+                {customer.kota ? `📍 ${customer.kota}` : <span className="empty">-</span>}
               </div>
-            )}
+              <div className="detail-item phone" title="Telepon">
+                {customer.telp ? `📱 ${customer.telp}` : <span className="empty">-</span>}
+              </div>
+              <div className="detail-item factory" title="Pabrik/Cabang">
+                {customer.cabang || customer.pabrik ? `🏭 ${customer.cabang || customer.pabrik}` : <span className="empty">-</span>}
+              </div>
+            </div>
+            {/* Show QR in list view or grid, helpful visual */}
+            <div className="customer-qr" style={{ background: 'white', padding: 5, display: 'inline-block', borderRadius: 4 }}>
+              <QRCode
+                value={customer.kode || customer.id || 'N/A'}
+                size={64}
+                viewBox={`0 0 256 256`}
+              />
+            </div>
           </div>
         ))}
       </div>
-
-      {selectedCustomer && (
-        <div className="selected-info">
-          <h3>✅ Data Terpilih</h3>
-          <div className="customer-detail">
-            <p><strong>ID:</strong> {selectedCustomer.id}</p>
-            <p><strong>Nama:</strong> {selectedCustomer.nama}</p>
-            <p><strong>Kota:</strong> {selectedCustomer.kota}</p>
-            <p><strong>Cabang:</strong> {selectedCustomer.cabang}</p>
-            <p><strong>Telp:</strong> {selectedCustomer.telp}</p>
-            <p><strong>Pabrik:</strong> {selectedCustomer.pabrik}</p>
-          </div>
-
-          <PrintPreview
-            data={{
-              it: selectedCustomer.id,
-              nt: selectedCustomer.nama,
-              at: selectedCustomer.kota,
-              pt: selectedCustomer.sales || selectedCustomer.pabrik,
-              ws: selectedCustomer.cabang,
-              raw: selectedCustomer.kode, // sumber QR
-            }}
-          />
-
-        </div>
-      )}
     </div>
   );
 }

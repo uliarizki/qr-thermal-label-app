@@ -12,15 +12,15 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
-  padding: 10px;
+  margin: 0;
+  /* No padding/margin */
 }
 
 #root {
   max-width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   min-height: 100vh;
+  /* Removed Flex Centering to allow Dashboard Layout */
+  display: block;
 }
 
 button {
@@ -43,7 +43,9 @@ button:active {
   transform: translateY(0);
 }
 
-input, textarea, select {
+input,
+textarea,
+select {
   border: 2px solid #ddd;
   border-radius: 8px;
   padding: 10px;
@@ -52,7 +54,9 @@ input, textarea, select {
   transition: border-color 0.3s ease;
 }
 
-input:focus, textarea:focus, select:focus {
+input:focus,
+textarea:focus,
+select:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);

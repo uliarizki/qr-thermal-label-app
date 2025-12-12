@@ -115,5 +115,14 @@ export async function generateLabelPdfVector(data, sizeMm) {
     .replace(/[\\/:*?"<>|]/g, '')
     .slice(0, 30);
 
+  // ... inside safeName ...
+
+  if (sizeMm.returnBlob) {
+    return {
+      blob: doc.output('blob'),
+      filename: `${safeName}_${idText}.pdf`
+    };
+  }
+
   doc.save(`${safeName}_${idText}.pdf`);
 }

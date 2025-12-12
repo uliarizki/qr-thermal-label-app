@@ -1,223 +1,93 @@
-# QR Thermal Label App
+# 🌟 Bintang Mas - QR Thermal Label App
 
-React app untuk scan QR code dan print thermal label sticker 58mm dengan OAuth2 Google Sheets integration.
+Aplikasi web modern untuk manajemen data customer, scan QR code, dan pencetakan label thermal otomatis. Dibangun untuk efisiensi tinggi dengan desain premium "Gold & Black".
 
-## Features
+![Bintang Mas App](public/logo_new.png)
 
-- 📱 Scan QR code via webcam (mobile & desktop)
-- 🔍 Search customer dari Google Sheets
-- ➕ Tambah customer baru langsung di app
-- 🖨️ Print ke thermal printer (58mm, customizable)
-- 📄 Export ke PDF untuk sticker label
-- 🔐 OAuth2 login dengan Google Account
-- 📊 Real-time sync ke Google Sheets
+## ✨ Fitur Utama (Ultimate Edition)
 
-## Ukuran Kertas Thermal Support
+### 1. 📱 Dual Mode Operation
+- **Scan Mode**: Gunakan kamera laptop/HP untuk memindai QR code produk/customer.
+- **Search Mode**: Pencarian pintar (Smart Search) berdasarkan Nama, ID, atau Kota.
+- **Dual Output**: Pilih antara **Thermal Print** (untuk label fisik) atau **Digital ID Card** (untuk share via WA).
 
-- 58 x 30mm
-- 58 x 37mm
-- 58 x 40mm (standard)
-- 58 x 50mm
-- 57 x 25mm
-- 57 x 30mm
-- 57 x 40mm
-- Custom size
+### 2. 🖨️ Smart Printing
+- **Auto-Format**: Label otomatis disesuaikan dengan ukuran 55x40mm (atau custom).
+- **One-Click PDF**: Sekali klik tombol "Print", file PDF langsung ter-download tanpa popup mengganggu.
+- **Sharp Vector Quality**: Hasil cetak tajam menggunakan teknologi Vector PDF.
 
-## Data Format QR Code
+### 3. 🔐 Enterprise Security
+- **Role-Based Access**: Login khusus untuk **Admin** (Control Penuh) dan **User** (Operasional).
+- **Secure Auth**: Password di-hash (SHA-256) untuk keamanan maksimal.
+- **Cloud Audit Log**: Semua aktivitas (Login, Scan, Add, Search) tercatat otomatis di Google Sheets Admin.
 
-QR code harus berisi JSON dengan format:
+### 4. 🚀 Hybrid Technology
+- **Offline-Ready**: Aplikasi bisa berjalan parsial saat sinyal hilang (PWA).
+- **Hybrid Storage**: 
+  - *Lokal*: History tersimpan di browser untuk akses kilat.
+  - *Cloud*: Data customer tersinkronisasi realtime dengan Google Sheets.
 
-```json
-{
-  "it": "G10000",
-  "nt": "CUSTOMER NAME",
-  "at": "CITY",
-  "pt": "PROPERTY TYPE",
-  "kp": "POSTAL CODE",
-  "ws": "WAREHOUSE/BRANCH NAME",
-  "np": "PHONE NUMBER"
-}
-```
+---
 
-### Field Description
-- `it` (item): ID customer
-- `nt` (name): Nama customer (LARGEST FONT)
-- `at` (address/city): Kota
-- `pt` (property type): Tipe properti
-- `kp` (kodepos): Kode pos
-- `ws` (warehouse): Nama cabang/warehouse (MEDIUM FONT)
-- `np` (nomor penelepon): Nomor telepon
+## 🛠️ Tech Stack
 
-## Tech Stack
+- **Frontend**: React 18, Vite, PWA
+- **Styling**: Modern CSS (Premium Gold Theme), React Hot Toast
+- **Database (Cloud)**: Google Sheets + Google Apps Script (GAS)
+- **Database (Local)**: LocalStorage (Snapshot Data)
+- **Cetak**: jsPDF (Vector), html2canvas (Digital ID)
 
-- **Frontend**: React 18 + Vite
-- **QR Scanning**: jsQR (browser-based)
-- **PDF Generation**: html2pdf
-- **Authentication**: Google OAuth2
-- **API**: Google Sheets API (v4)
-- **Deployment**: Vercel
+---
 
-## Setup & Installation
+## 🚀 Panduan Penggunaan
 
-### 1. Clone Repository
+### A. Login
+Masukkan username & password yang telah didaftarkan oleh Admin.
+- **Admin**: Bisa akses menu "Admin Panel" untuk kelola user.
+- **User**: Hanya bisa akses fitur operasional scan & print.
 
-```bash
-git clone https://github.com/uliarizki/qr-thermal-label-app.git
-cd qr-thermal-label-app
-```
+### B. Menambah Customer Baru
+1. Masuk menu **"Baru"** (`+`).
+2. Isi data wajib: Nama, Kota, Cabang.
+3. Klik "Simpan".
+4. **Otomatis**: Anda akan diarahkan ke halaman "Preview" untuk langsung cetak label customer baru tersebut.
 
-### 2. Install Dependencies
+### C. Mencetak Label
+1. Dari hasil Scan atau Pencarian, klik customer.
+2. Muncul popup detail.
+3. Pilih tab **"Thermal Print"**.
+4. Klik tombol **"Generate PDF & Print"**.
+5. File PDF akan terdownload. Buka dan Print ke printer thermal (Setting: 55x40mm).
 
-```bash
-npm install
-```
+### D. Membuat Digital ID
+1. Dari popup detail, pilih tab **"Digital ID"**.
+2. Klik **"Save as Image"**.
+3. Gambar kartu nama premium akan tersimpan (PNG) dan siap dikirim ke WhatsApp customer.
 
-### 3. Setup Google OAuth2
+---
 
-- Sudah di-setup di project "Bintang Mas" di Google Cloud
-- Client ID: `978955210480-uhe12gbqjrso5mkof5e1gqbukkt8hsap.apps.googleusercontent.com`
-- Authorized origins: `http://localhost:3000`
-- Authorized redirect URI: `http://localhost:3000/auth/callback`
+## 📦 Deployment (cPanel)
 
-### 4. Configure Environment
+Aplikasi ini dirancang untuk berjalan di hosting standar (cPanel/Apache).
 
-Buat file `.env.local`:
+1. **Build Project**:
+   ```bash
+   npm run build
+   ```
+2. **Upload**:
+   - Upload isi folder `dist/` ke folder `public_html` (atau subdomain) di cPanel.
+   - Pastikan file `.htaccess` juga terupload agar routing aman.
+3. **Environment**:
+   - Pastikan URL backend GAS (`VITE_GAS_WEBAPP_URL`) sudah di-set di file `.env` sebelum build.
 
-```
-VITE_GOOGLE_CLIENT_ID=978955210480-uhe12gbqjrso5mkof5e1gqbukkt8hsap.apps.googleusercontent.com
-VITE_GOOGLE_SHEETS_ID=YOUR_SPREADSHEET_ID
-```
+---
 
-### 5. Run Development Server
+## 🔄 Sinkronisasi Data
 
-```bash
-npm run dev
-```
+- Data customer diambil dari Google Sheets.
+- Klik tombol **"Sync"** di menu Customer untuk mengambil data terbaru dari pusat.
+- History aktivitas Anda tersimpan lokal di browser, namun juga dikirim "diam-diam" ke Admin Sheet untuk keperluan audit.
 
-App akan berjalan di: `http://localhost:3000`
+---
 
-## Deployment ke Vercel
-
-### 1. Push ke GitHub
-
-```bash
-git add .
-git commit -m "initial commit"
-git push origin main
-```
-
-### 2. Connect ke Vercel
-
-- Login ke vercel.com
-- Click "New Project"
-- Select repository `uliarizki/qr-thermal-label-app`
-- Deploy
-
-### 3. Update OAuth2 Domain
-
-Setelah deploy, tambahkan authorized origin baru di Google Cloud Console:
-- Authorized JavaScript origins: `https://your-vercel-app.vercel.app`
-- Authorized redirect URIs: `https://your-vercel-app.vercel.app/auth/callback`
-
-## Project Structure
-
-```
-qr-thermal-label-app/
-├── package.json
-├── vite.config.js
-├── index.html
-├── .gitignore
-├── README.md
-└── src/
-    ├── main.jsx
-    ├── index.css
-    ├── App.jsx
-    ├── App.css
-    ├── components/
-    │   ├── QRScanner.jsx
-    │   ├── CustomerSearch.jsx
-    │   ├── AddCustomer.jsx
-    │   ├── PrintPreview.jsx
-    │   └── components.css
-    └── utils/
-        ├── googleSheets.js
-        ├── qrParser.js
-        └── pdfGenerator.js
-```
-
-## Usage
-
-### Scan QR & Print
-
-1. Click "📱 Scan QR"
-2. Arahkan camera ke QR code
-3. Setelah scan, tampil preview label
-4. Click "Print" untuk print label
-5. Pilih ukuran kertas (default 58x40mm)
-6. Generate PDF dan print
-
-### Search Customer
-
-1. Click "🔍 Cari Customer"
-2. Ketik nama/ID/kota untuk search
-3. Click customer untuk lihat & print label
-
-### Add Customer Baru
-
-1. Click "➕ Customer Baru"
-2. Isi form dengan data customer
-3. Submit - data langsung tersimpan ke Google Sheets
-4. Generate QR code untuk customer baru
-
-## OAuth2 Login Flow
-
-1. User klik "Login dengan Google"
-2. Redirect ke Google OAuth consent screen
-3. User approve permissions
-4. Redirect back ke app dengan access token
-5. App fetch customer data dari Google Sheets
-6. User bisa scan, search, dan add customer
-
-## Print Configuration
-
-### Default Thermal Printer Settings
-
-- Paper width: 58mm
-- Margin: 2mm (disesuaikan untuk kertas sticker berlekuk)
-- DPI: 300 (untuk print quality)
-- Color mode: Grayscale recommended
-
-### Print Custom Size
-
-User bisa set custom ukuran paper sebelum print:
-- Width: 50-100mm
-- Height: 20-200mm
-
-## Troubleshooting
-
-### Camera Permission Denied
-
-- Pastikan browser sudah grant camera permission
-- Try refresh page dan allow akses camera
-- Di mobile: Check app permissions di settings
-
-### QR Code Tidak Terbaca
-
-- Pastikan format QR = valid JSON
-- QR quality harus bagus (tidak blur/rusak)
-- Brightness & contrast ruangan cukup
-
-### Google Sheets Tidak Terload
-
-- Check Google OAuth token masih valid
-- Spreadsheet ID sudah benar di .env
-- Pastikan spreadsheet "KODE" sheet exist
-- Check column structure sesuai requirement
-
-## Support
-
-Untuk pertanyaan atau issue, contact via GitHub Issues atau direct message.
-
-## License
-
-MIT License - feel free to use dan modify
+© 2024 Bintang Mas Software Team. All Rights Reserved.
