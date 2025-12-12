@@ -38,8 +38,12 @@ bower_components
 build/Release
 
 # Dependency directories
-node_modules/
-jspm_packages/
+node_modules
+.DS_Store
+# dist
+dist
+dist-ssr
+*.local
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
@@ -137,3 +141,4 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+.vercel

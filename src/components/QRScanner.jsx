@@ -67,7 +67,7 @@ export default function QRScanner({ onScan }) {
           // Chrome kadang butuh play() agar memicu permintaan izin
           const playPromise = videoRef.current.play()
           if (playPromise?.catch) {
-            playPromise.catch(() => {})
+            playPromise.catch(() => { })
           }
         }
         setHasCamera(true)
@@ -119,14 +119,14 @@ export default function QRScanner({ onScan }) {
               setLastScanned(data)
               setIsScanning(false)
               setError(null)
-              
+
               // Log history
               addHistory('SCAN', {
                 customerId: data.it,
                 nama: data.nt,
                 kota: data.at || '',
               })
-              
+
               onScan(data)
             }
           } catch (e) {
@@ -165,38 +165,40 @@ export default function QRScanner({ onScan }) {
   }
 
   return (
-    <div className="scanner-container">
-      <div className="scanner-box">
-        <video
-          ref={videoRef}
-          className="scanner-video"
-          autoPlay
-          playsInline
-        />
-        <canvas ref={canvasRef} style={{ display: 'none' }} />
-        <div className="scanner-overlay">
-          <div className="scanner-frame"></div>
+    <div className="page-card">
+      <div className="scanner-container">
+        <div className="scanner-box">
+          <video
+            ref={videoRef}
+            className="scanner-video"
+            autoPlay
+            playsInline
+          />
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
+          <div className="scanner-overlay">
+            <div className="scanner-frame"></div>
+          </div>
+          {isScanning && <p className="scanner-hint">Arahkan kamera ke QR Code</p>}
         </div>
-        {isScanning && <p className="scanner-hint">Arahkan kamera ke QR Code</p>}
+
+        {lastScanned && (
+          <div className="last-scanned">
+            <h3>📍 Terakhir di-scan:</h3>
+            <p><strong>{lastScanned.nt}</strong></p>
+            <p>ID: {lastScanned.it}</p>
+            <button onClick={() => setIsScanning(true)} className="rescan-btn">
+              🔄 Scan Ulang
+            </button>
+          </div>
+        )}
+
+        <button
+          className={`toggle-btn ${isScanning ? 'scanning' : 'paused'}`}
+          onClick={() => setIsScanning(!isScanning)}
+        >
+          {isScanning ? '⏸️ Pause Scanner' : '▶️ Resume Scanner'}
+        </button>
       </div>
-
-      {lastScanned && (
-        <div className="last-scanned">
-          <h3>📍 Terakhir di-scan:</h3>
-          <p><strong>{lastScanned.nt}</strong></p>
-          <p>ID: {lastScanned.it}</p>
-          <button onClick={() => setIsScanning(true)} className="rescan-btn">
-            🔄 Scan Ulang
-          </button>
-        </div>
-      )}
-
-      <button
-        className={`toggle-btn ${isScanning ? 'scanning' : 'paused'}`}
-        onClick={() => setIsScanning(!isScanning)}
-      >
-        {isScanning ? '⏸️ Pause Scanner' : '▶️ Resume Scanner'}
-      </button>
     </div>
   )
 }

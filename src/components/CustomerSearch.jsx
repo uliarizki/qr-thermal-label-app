@@ -1,175 +1,139 @@
-import { useState, useRef, useEffect } from 'react';
-import { searchCustomer } from '../utils/googleSheets';
+import { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
 import { addHistory } from '../utils/history';
 import PrintPreview from './PrintPreview';
 import './CustomerSearch.css';
 
 const STORAGE_KEY = 'qr:lastSearchQuery';
 
-export default function CustomerSearch() {
+export default function CustomerSearch({ customers = [], onSelect, onSync, isSyncing, lastUpdated }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [hasResult, setHasResult] = useState(false); // hanya true setelah request selesai
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
-  const lastQueryRef = useRef('');
-  const debounceRef = useRef(null);
 
-  const handleSearch = async (input) => {
-    const query = typeof input === 'string' ? input : input?.target?.value || '';
-  setSearchQuery(query);
-  lastQueryRef.current = query;
-    setHasResult(false); // reset state sebelum request baru
-
-    // bersihkan debounce sebelumnya
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-
-  if (!query.trim()) {
-    setCustomers([]);
-    setSelectedCustomer(null);
-    setLoading(false);
-      setHasResult(false);
-    return;
-  }
-
-  setLoading(true);
-  
-  // Debounce: tunggu 300ms sebelum call API
-    debounceRef.current = setTimeout(async () => {
-      const currentQuery = lastQueryRef.current;
-      if (currentQuery !== query) {
-      return;
-    }
-
-      try {
-    const result = await searchCustomer(query);
-
-        // Pastikan masih relevan
-    if (lastQueryRef.current !== query) {
-      return;
-    }
-
-    if (result.success) {
-          const customersData = result.data || [];
-          setCustomers(customersData);
-          
-          // Log history
-          addHistory('SEARCH', {
-            query: query,
-            resultCount: customersData.length,
-          });
-    } else {
-      setCustomers([]);
-      console.error(result.error);
-          
-          // Log history meski tidak ada hasil
-          addHistory('SEARCH', {
-            query: query,
-            resultCount: 0,
-          });
-        }
-      } catch (err) {
-        console.error('searchCustomer error:', err);
-        setCustomers([]);
-      } finally {
-        if (lastQueryRef.current === query) {
-    setLoading(false);
-          setHasResult(true);
-        }
-      }
-  }, 300);
-  };
-
-  // Cleanup debounce on unmount
+  // Initial load query
   useEffect(() => {
-    return () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-    };
-  }, []);
-
-  // Load last query on mount
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      // set state and trigger search with saved query
-      setSearchQuery(saved);
-      lastQueryRef.current = saved;
-      handleSearch(saved);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setSearchQuery(saved);
     }
   }, []);
 
-  // Persist query locally
+  // Save query
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (searchQuery) {
-      localStorage.setItem(STORAGE_KEY, searchQuery);
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
+    if (typeof window !== 'undefined') {
+      if (searchQuery) localStorage.setItem(STORAGE_KEY, searchQuery);
+      else localStorage.removeItem(STORAGE_KEY);
     }
   }, [searchQuery]);
 
+  // Filter effect with Debounce & Smart Logic
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!searchQuery.trim()) {
+        setFilteredCustomers([]);
+        return;
+      }
+
+      // 1. Pecah query jadi array kata (tokens), buang spasi kosong
+      const terms = searchQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
+
+      const results = customers.filter(c => {
+        // 2. Gabungkan semua field relevan jadi satu "haystack"
+        const haystack = `${c.id || ''} ${c.nama || ''} ${c.kota || ''} ${c.pabrik || ''} ${c.sales || ''}`.toLowerCase();
+
+        // 3. Cek apakah SEMUA kata di query ada di haystack (AND Logic)
+        return terms.every(term => haystack.includes(term));
+      });
+
+      setFilteredCustomers(results);
+    }, 300); // Debounce 300ms
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, customers]);
+
   const handleSelectCustomer = (customer) => {
     setSelectedCustomer(customer);
+    // Add history on select
+    addHistory('SEARCH_SELECT', {
+      query: searchQuery,
+      customerId: customer.id,
+      customerName: customer.nama
+    });
   };
 
   return (
-    <div className="customer-search">
-      <input
-        type="text"
-        placeholder="🔍 Cari berdasarkan Nama, ID, atau Kota..."
-        value={searchQuery}
-        onChange={handleSearch}
-        className="search-input"
-      />
+    <div className="customer-search page-card">
+      <div className="search-header-container">
+        <input
+          type="text"
+          placeholder="🔍 Cari berdasarkan Nama, ID, atau Kota..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="search-input"
+        />
+        <button
+          className="sync-btn"
+          onClick={onSync}
+          disabled={isSyncing}
+          title="Ambil data terbaru dari Google Sheets"
+        >
+          {isSyncing ? '⏳Sync' : '🔄 Sync'}
+        </button>
+      </div>
 
-      {loading && <p className="loading">⏳ Loading...</p>}
-
-      {!loading && hasResult && searchQuery.trim() && customers.length === 0 && (
-        <p className="no-data">❌ Tidak ada hasil</p>
+      {lastUpdated && (
+        <p className="last-updated">
+          Data terakhir: {lastUpdated.toLocaleTimeString()} {lastUpdated.toLocaleDateString()}
+        </p>
       )}
 
-      {!loading && !searchQuery.trim() && customers.length === 0 && (
-        <p className="no-data">💡 Masukkan pencarian</p>
+      {isSyncing && (
+        <div style={{ marginBottom: 20 }}>
+          <Skeleton count={3} height={40} style={{ marginBottom: 10 }} />
+        </div>
+      )}
+
+      {!isSyncing && searchQuery.trim() && filteredCustomers.length === 0 && (
+        <p className="no-data">❌ Tidak ada hasil. Coba "Sync" jika data barusan diinput.</p>
+      )}
+
+      {!isSyncing && !searchQuery.trim() && filteredCustomers.length === 0 && (
+        <p className="no-data">💡 Ketik untuk mencari dari local data</p>
       )}
 
       <div className="customer-list">
-        {customers.map((customer, idx) => {
-          console.log('customer item', customer);
-          return (
-            <div
-              key={idx}
-              className={`customer-card ${
-                selectedCustomer?.id === customer.id ? 'selected' : ''
+        {filteredCustomers.map((customer, idx) => (
+          <div
+            key={customer.id || idx}
+            className={`customer-card ${selectedCustomer?.id === customer.id ? 'selected' : ''
               }`}
-              onClick={() => handleSelectCustomer(customer)}
-            >
-              <div className="customer-header">
-                <span className="customer-id">{customer.id}</span>
-                <span className="customer-name">{customer.nama}</span>
-              </div>
-              <div className="customer-details">
-                <p>📍 {customer.kota}</p>
-                <p>📱 {customer.telp}</p>
-                <p>🏭 {customer.pabrik}</p>
-              </div>
-              {customer.kode && (
-                <div className="customer-qr">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(
-                      customer.kode
-                    )}`}
-                    alt="QR"
-                  />
-                </div>
-              )}
+            onClick={() => handleSelectCustomer(customer)}
+          >
+            <div className="customer-header">
+              <span className="customer-id">{customer.id}</span>
+              <span className="customer-name">{customer.nama}</span>
             </div>
-          );
-        })}
+            <div className="customer-details">
+              <p>📍 {customer.kota}</p>
+              <p>📱 {customer.telp}</p>
+              <p>🏭 {customer.pabrik}</p>
+            </div>
+            {customer.kode && (
+              <div className="customer-qr">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(
+                    customer.kode
+                  )}`}
+                  alt="QR"
+                  loading="lazy"
+                />
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       {selectedCustomer && (
@@ -184,16 +148,16 @@ export default function CustomerSearch() {
             <p><strong>Pabrik:</strong> {selectedCustomer.pabrik}</p>
           </div>
 
-            <PrintPreview
+          <PrintPreview
             data={{
-                it: selectedCustomer.id,
-                nt: selectedCustomer.nama,
-                at: selectedCustomer.kota,
-                pt: selectedCustomer.sales || selectedCustomer.pabrik,
-                ws: selectedCustomer.cabang,
-                raw: selectedCustomer.kode, // sumber QR
+              it: selectedCustomer.id,
+              nt: selectedCustomer.nama,
+              at: selectedCustomer.kota,
+              pt: selectedCustomer.sales || selectedCustomer.pabrik,
+              ws: selectedCustomer.cabang,
+              raw: selectedCustomer.kode, // sumber QR
             }}
-            />
+          />
 
         </div>
       )}

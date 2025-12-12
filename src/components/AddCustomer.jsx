@@ -1,23 +1,21 @@
-// src/components/AddCustomer.jsx
 import { useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { addCustomer } from '../utils/googleSheets';
 import { addHistory } from '../utils/history';
 import './AddCustomer.css';
 
-export default function AddCustomer() {
+export default function AddCustomer({ onAdd }) {
   const [formData, setFormData] = useState({
-    id: '',            // OPTIONAL - bisa kosong
-    nama: '',          // MANDATORY
-    kota: '',          // MANDATORY
+    id: '',
+    nama: '',
+    kota: '',
     sales: '',
-    pabrik: '', 
-    cabang: 'BT SMG',        // MANDATORY
+    pabrik: '',
+    cabang: 'BT SMG',
     telp: ''
   });
 
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState(''); // 'success' atau 'error'
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,31 +30,27 @@ export default function AddCustomer() {
 
     // Validasi mandatory fields
     if (!formData.nama.trim()) {
-      setMessageType('error');
-      setMessage('❌ Nama customer wajib diisi!');
+      toast.error('Nama customer wajib diisi!');
       return;
     }
 
     if (!formData.kota.trim()) {
-      setMessageType('error');
-      setMessage('❌ Kota wajib diisi!');
+      toast.error('Kota wajib diisi!');
       return;
     }
 
     if (!formData.cabang.trim()) {
-      setMessageType('error');
-      setMessage('❌ Cabang wajib diisi!');
+      toast.error('Cabang wajib diisi!');
       return;
     }
 
     setLoading(true);
-    setMessage('');
+    const toastId = toast.loading('Menambahkan customer...');
 
     const result = await addCustomer(formData);
 
     if (result.success) {
-      setMessageType('success');
-      setMessage(`✅ Customer "${formData.nama}" berhasil ditambahkan ke Sheets!`);
+      toast.success(`Customer "${formData.nama}" berhasil ditambahkan!`, { id: toastId });
 
       // Log history
       addHistory('ADD', {
@@ -77,18 +71,17 @@ export default function AddCustomer() {
         telp: ''
       });
 
-      // Auto-clear message setelah 3 detik
-      setTimeout(() => setMessage(''), 3000);
+      if (onAdd) onAdd(formData); // Notify parent to refresh
+
     } else {
-      setMessageType('error');
-      setMessage(`❌ Error: ${result.error}`);
+      toast.error(`Error: ${result.error}`, { id: toastId });
     }
 
     setLoading(false);
   };
 
   return (
-    <div className="add-customer">
+    <div className="add-customer page-card">
       <h2>📝 Tambah Customer Baru</h2>
 
       <form onSubmit={handleSubmit}>
@@ -192,13 +185,6 @@ export default function AddCustomer() {
             />
           </div>
         </div>
-
-        {/* MESSAGE */}
-        {message && (
-          <div className={`message message-${messageType}`}>
-            {message}
-          </div>
-        )}
 
         {/* BUTTON */}
         <button type="submit" disabled={loading} className="submit-btn">

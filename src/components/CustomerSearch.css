@@ -1,4 +1,55 @@
 /* src/components/CustomerSearch.css */
+/* Add these new styles */
+
+.search-header-container {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.search-input {
+  /* Existing styles need update to remove margin bottom if inside flex */
+  /* But kept for safety, just overriding flex context */
+  flex-grow: 1;
+  margin-bottom: 0; 
+}
+
+.sync-btn {
+  padding: 0 20px;
+  background: white;
+  border: 2px solid #6366f1;
+  color: #6366f1;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sync-btn:hover:not(:disabled) {
+  background: #f0f4ff;
+  transform: translateY(-2px);
+}
+
+.sync-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.last-updated {
+  font-size: 12px;
+  color: #888;
+  text-align: right;
+  margin-top: -12px;
+  margin-bottom: 20px;
+  font-style: italic;
+}
+
+/* --- Original File Below --- */
+
 .customer-search {
   padding: 24px;
   background: white;
@@ -11,7 +62,6 @@
   border: 2px solid #ddd;
   border-radius: 8px;
   font-size: 16px;
-  margin-bottom: 20px;
   transition: border-color 0.3s;
 }
 

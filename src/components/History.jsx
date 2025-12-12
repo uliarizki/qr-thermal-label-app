@@ -96,7 +96,7 @@ export default function History() {
   };
 
   return (
-    <div className="history-container">
+    <div className="history-container page-card">
       <div className="history-header-section">
         <h2>📊 History</h2>
         <div className="history-controls">
