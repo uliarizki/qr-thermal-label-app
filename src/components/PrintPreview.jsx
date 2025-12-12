@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 //import html2pdf from 'html2pdf.js';
-import './components.css';
+import './Components.css';
 import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
 import { Icons } from './Icons';
 
