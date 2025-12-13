@@ -161,9 +161,12 @@ export default function QRScanner({ onScan }) {
           <button
             className="rescan-btn"
             onClick={() => {
-              setIsScanning(true)
-              setPermissionDenied(false)
-              setError(null)
+              setHasCamera(true); // Allow render
+              setError(null);
+              setPermissionDenied(false);
+              // Force re-trigger of useEffect
+              setIsScanning(false);
+              setTimeout(() => setIsScanning(true), 100);
             }}
           >
             🔄 Aktifkan kamera kembali
