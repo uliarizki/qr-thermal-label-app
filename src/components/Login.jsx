@@ -64,8 +64,9 @@ export default function Login() {
           justifyContent: 'center'
         }}>
           <img
-            src="/logo_new.png"
-            alt="Logo"
+            src="/logo_brand.png"
+            alt="Bintang Mas Logo"
+            className="login-logo"
             style={{
               width: '100%',
               height: '100%',

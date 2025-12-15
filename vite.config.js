@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['logo_new.png'],
+      includeAssets: ['logo_brand.png'],
       manifest: {
         name: 'Bintang Mas - QR Label App',
         short_name: 'Bintang Mas',

@@ -2,7 +2,7 @@
 
 Aplikasi web modern untuk manajemen data customer, scan QR code, dan pencetakan label thermal otomatis. Dibangun untuk efisiensi tinggi dengan desain premium "Gold & Black".
 
-![Bintang Mas App](public/logo_new.png)
+![Bintang Mas App](public/logo_brand.png)
 
 > **Untuk Developer / Teknis:**
 > Silakan baca [📘 TECHNICAL_DOCUMENTATION.md](TECHNICAL_DOCUMENTATION.md) untuk mempelajari arsitektur kode, API, dan cara kerja sistem secara mendalam.

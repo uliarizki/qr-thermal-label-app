@@ -14,7 +14,7 @@ const DigitalCard = forwardRef(({ customer }, ref) => {
                 {/* Header: Logo & Branding */}
                 <div className="card-header">
                     <div className="brand-logo">
-                        <img src="/logo_new.png" alt="Logo" className="logo-img" crossOrigin="anonymous" />
+                        <img src="/logo_brand.png" alt="Bintang Mas" style={{ height: 40, opacity: 0.9 }} crossOrigin="anonymous" />
                         <span className="brand-name">Bintang Mas</span>
                     </div>
                     <span className="card-type">PRIORITY MEMBER</span>
