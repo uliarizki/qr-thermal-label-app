@@ -483,9 +483,18 @@ function getAttendanceList() {
 
     const attendees = [];
     // Skip Header
+    // Filter by Today
     for (let i = 1; i < data.length; i++) {
-        // Filter by Today
-        if (data[i][1] === todayStr) {
+        let rowDateVal = data[i][1];
+        let rowDateStr = "";
+
+        if (rowDateVal instanceof Date) {
+            rowDateStr = Utilities.formatDate(rowDateVal, Session.getScriptTimeZone(), "yyyy-MM-dd");
+        } else {
+            rowDateStr = String(rowDateVal);
+        }
+
+        if (rowDateStr === todayStr) {
             attendees.push({
                 timestamp: data[i][0],
                 id: data[i][2],
