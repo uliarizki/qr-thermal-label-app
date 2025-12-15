@@ -12,6 +12,21 @@ export default function QRScanner({ onScan }) {
   const [lastScanned, setLastScanned] = useState(null)
   const [error, setError] = useState(null)
   const [permissionDenied, setPermissionDenied] = useState(false)
+  const TIMEOUT_DURATION = 120000; // 2 Minutes auto-off
+
+  // Auto-off Timer
+  useEffect(() => {
+    let timer;
+    if (isScanning) {
+      timer = setTimeout(() => {
+        setIsScanning(false);
+        // Using alert might be too intrusive, maybe just stop it? 
+        // Or update UI to show it timed out. 
+        // Let's rely on the "Resume" button label change.
+      }, TIMEOUT_DURATION);
+    }
+    return () => clearTimeout(timer);
+  }, [isScanning]);
 
   useEffect(() => {
     const stopTracks = () => {
@@ -208,7 +223,7 @@ export default function QRScanner({ onScan }) {
           className={`toggle-btn ${isScanning ? 'scanning' : 'paused'}`}
           onClick={() => setIsScanning(!isScanning)}
         >
-          {isScanning ? '⏸️ Pause Scanner' : '▶️ Resume Scanner'}
+          {isScanning ? '⏸️ Pause Scanner' : '▶️ Resume Scanner (Auto-off aktif 2m)'}
         </button>
       </div>
     </div>
