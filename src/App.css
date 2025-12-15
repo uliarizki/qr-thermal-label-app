@@ -334,33 +334,55 @@ button {
   .app-header {
     padding: 12px 16px;
     /* Compact padding */
-    flex-direction: column;
-    /* Stack Logo and User Profile */
-    gap: 12px;
+    flex-direction: row;
+    /* KEEP ROW: Left (Logo) - Right (User) */
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
   }
 
   .header-brand {
-    width: 100%;
-    justify-content: center;
+    width: auto;
+    /* Allow shrink */
+    justify-content: flex-start;
   }
 
   .app-header h1 {
-    font-size: 22px;
+    font-size: 18px;
+    /* Slightly smaller Title */
+    margin: 0;
   }
 
+  /* Reduce User Info Size */
   .user-info-section {
-    width: 100%;
-    justify-content: center;
-    border-top: 1px solid rgba(212, 175, 55, 0.2);
-    padding-top: 8px;
+    width: auto;
+    justify-content: flex-end;
+    border-top: none;
+    /* Remove separator */
+    padding-top: 0;
   }
 
   .user-name {
     margin: 0;
-    /* Reset margins */
     background: transparent;
     border: none;
     padding: 0;
+    max-width: 80px;
+    /* Truncate name if too long */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 12px;
+  }
+
+  /* Hide "Keluar" Text - Icon Only */
+  .logout-btn span {
+    display: none;
+  }
+
+  .logout-btn {
+    padding: 8px;
+    /* Square button */
   }
 }
 

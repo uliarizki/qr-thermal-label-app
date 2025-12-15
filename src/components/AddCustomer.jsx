@@ -5,22 +5,24 @@ import { addHistory } from '../utils/history';
 import { Icons } from './Icons';
 import './AddCustomer.css';
 
-const INITIAL_STATE = {
-  id: '',
-  nama: '',
-  kota: '',
-  sales: '',
-  pabrik: '',
-  cabang: 'BT SMG',
-  telp: ''
+// Helper to get initial state
+const getInitialState = () => {
+  const savedBranch = localStorage.getItem('qr:lastBranch');
+  return {
+    id: '',
+    nama: '',
+    kota: '',
+    sales: '',
+    pabrik: '',
+    telp: '',
+    cabang: savedBranch || 'BT SMG' // Default or Persistence
+  };
 };
 
 export default function AddCustomer({ onAdd }) {
-  const [formData, setFormData] = useState(INITIAL_STATE);
-
+  // Initialize from localStorage
+  const [formData, setFormData] = useState(getInitialState);
   const [loading, setLoading] = useState(false);
-
-  // ... (handleChange same)
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,6 +30,11 @@ export default function AddCustomer({ onAdd }) {
       ...prev,
       [name]: value,
     }));
+
+    // Persist Cabang Selection
+    if (name === 'cabang') {
+      localStorage.setItem('qr:lastBranch', value);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -70,7 +77,8 @@ export default function AddCustomer({ onAdd }) {
           kota: upperCasedData.kota,
           cabang: upperCasedData.cabang,
         });
-        setFormData(INITIAL_STATE); // Reset form
+
+        setFormData(getInitialState()); // Reset form preserving branch
         if (onAdd) onAdd(upperCasedData); // Update parent list
       } else {
         toast.error('Gagal menambahkan: ' + result.error, { id: toastId });
@@ -123,7 +131,6 @@ export default function AddCustomer({ onAdd }) {
           </div>
 
           <div className="form-group">
-            {/* ... */}
             <label>Cabang <span className="required">*</span></label>
             <select
               name="cabang"
@@ -194,7 +201,6 @@ export default function AddCustomer({ onAdd }) {
           </div>
         </div>
 
-        {/* BUTTON */}
         {/* BUTTON */}
         <button type="submit" disabled={loading} className="submit-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           {loading ? (

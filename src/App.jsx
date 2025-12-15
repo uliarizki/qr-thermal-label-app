@@ -7,7 +7,9 @@ import AddCustomer from './components/AddCustomer';
 import PrintPreview from './components/PrintPreview.jsx';
 import History from './components/History';
 import Login from './components/Login';
+
 import AdminPanel from './components/AdminPanel'; // NEW
+import GuestBook from './components/GuestBook'; // NEW: Event/Attendance
 import CustomerDetailModal from './components/CustomerDetailModal';
 import { getCustomers, getLastUpdate, getCachedCustomers } from './utils/googleSheets';
 import { Icons } from './components/Icons';
@@ -284,6 +286,13 @@ function AppContent() {
           <span>Baru</span>
         </button>
         <button
+          className={`tab-btn event ${activeTab === 'event' ? 'active' : ''}`}
+          onClick={() => navigateTo('event')}
+        >
+          <Icons.Calendar size={20} />
+          <span>Event</span>
+        </button>
+        <button
           className={`tab-btn history ${activeTab === 'history' ? 'active' : ''}`}
           onClick={() => navigateTo('history')}
         >
@@ -332,6 +341,8 @@ function AppContent() {
         {activeTab === 'add' && (
           <AddCustomer onAdd={handleAddCustomer} />
         )}
+
+        {activeTab === 'event' && <GuestBook />}
 
         {activeTab === 'history' && <History onSelect={handleHistorySelect} />}
 

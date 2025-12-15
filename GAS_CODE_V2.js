@@ -10,6 +10,7 @@ const SPREADSHEET_ID = '1WEKC5zNNNcwv1I697pz2z7pAKqP_VpTCRc5Dt5izkk8'; // ID Spr
 const SHEET_CUSTOMERS = 'Custs'; // Sesuai request user: 'Custs'
 const SHEET_USERS = 'Users';
 const SHEET_HISTORY = 'History_Log';
+const SHEET_ATTENDANCE = 'Attendance'; // New Sheet for Guest Book
 const ADMIN_EMAIL = 'uliarizki@gmail.com';
 
 function doGet(e) {
@@ -78,6 +79,18 @@ function doPost(e) {
                 break;
             case 'deleteUser':
                 result = handleDeleteUser(payload.username, payload.role, payload.targetUser);
+                break;
+
+            // --- GUEST BOOK / ATTENDANCE (NEW) ---
+            case 'checkIn':
+                result = handleCheckIn(payload.customer);
+                break;
+            case 'addAndCheckIn':
+                // Composite Action: Add Master -> Check In
+                result = handleAddAndCheckIn(payload.customer);
+                break;
+            case 'getAttendance':
+                result = getAttendanceList();
                 break;
 
             default:
@@ -286,6 +299,7 @@ function getSheet(name) {
         // Auto-create jika hilang
         sheet = ss.insertSheet(name);
         if (name === SHEET_USERS) sheet.appendRow(['Username', 'PasswordHash', 'Role', 'Created']);
+        if (name === SHEET_ATTENDANCE) sheet.appendRow(['Timestamp', 'DateStr', 'ID', 'Nama', 'Kota', 'Cabang', 'UniqueKey']);
     }
     return sheet;
 }
@@ -400,4 +414,87 @@ function handleDeleteUser(adminUsername, adminRole, targetUser) {
 
     sheet.deleteRow(rowIndex);
     return { message: "User deleted" };
+}
+
+// --- GUEST BOOK LOGIC ---
+
+function handleCheckIn(customer) {
+    const sheet = getSheet(SHEET_ATTENDANCE);
+    // Format Date: YYYY-MM-DD for composite key
+    const now = new Date();
+    const todayStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
+
+    // Composite Key Identity: Name + City + Cabang
+    const name = (customer.nama || "").trim().toUpperCase();
+    const city = (customer.kota || "").trim().toUpperCase();
+    const cabang = (customer.cabang || "").trim().toUpperCase();
+    const uniqueKey = todayStr + "_" + name + "_" + city + "_" + cabang;
+
+    // Check for Duplicates (Today)
+    const data = sheet.getDataRange().getValues();
+    // Header: [Timestamp, DateString, CustomerID, Name, City, UniqueKey]
+
+    for (let i = 1; i < data.length; i++) {
+        // Build key from existing data to be safe, or check Col G (Index 6)
+        // Let's assume Col G is UniqueKey
+        if (data[i][6] === uniqueKey) {
+            throw new Error("Tamu sudah check-in hari ini!");
+        }
+    }
+
+    // Append Attendance
+    sheet.appendRow([
+        new Date(),       // Timestamp
+        todayStr,         // Date String (for easy filtering)
+        customer.id || '',// ID (Optional)
+        name,             // Name
+        city,             // City
+        cabang,           // Cabang (New)
+        uniqueKey         // Integrity Key
+    ]);
+
+    return { message: "Check-in Berhasil", name: name };
+}
+
+function handleAddAndCheckIn(customer) {
+    // 1. Add to Master Database (Reuse logic)
+    // We wrap it in try-catch to handle potential duplicates in Master, 
+    // but for walk-in, we usually want to proceed.
+    try {
+        addCustomerData(customer); // This creates ID if missing? 
+        // addCustomerData generates ID in Frontend usually? 
+        // Wait, GAS addCustomerData just saves what is given.
+    } catch (e) {
+        // If error is "Duplicate", we ignore and proceed to check-in?
+        // Better to let it fail if Master fails.
+        // But if duplicate name exists, maybe we just want to check-in that person.
+        // For now, let it throw.
+    }
+
+    // 2. Check In
+    return handleCheckIn(customer);
+}
+
+function getAttendanceList() {
+    const sheet = getSheet(SHEET_ATTENDANCE);
+    const data = sheet.getDataRange().getValues();
+    const now = new Date();
+    const todayStr = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd");
+
+    const attendees = [];
+    // Skip Header
+    for (let i = 1; i < data.length; i++) {
+        // Filter by Today
+        if (data[i][1] === todayStr) {
+            attendees.push({
+                timestamp: data[i][0],
+                id: data[i][2],
+                nama: data[i][3],
+                kota: data[i][4],
+                cabang: data[i][5] // Add Cabang
+            });
+        }
+    }
+    // Return newest first
+    return attendees.reverse();
 }

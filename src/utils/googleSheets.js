@@ -2,6 +2,8 @@
 
 // const WEB_APP_URL = import.meta.env.VITE_GAS_WEBAPP_URL;
 const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxNkPhx15iUrHerLjJxe9d458ZINVbRiKHFZcSDqSkUsqepfQMJpemdDii1UHoX1o6cjQ/exec';
+// Feature Guest Book: Attendance
+const CACHE_ATTENDANCE_KEY = 'qr:attendance'; // Minimal caching for offline
 const CACHE_KEY = 'qr:customersData';
 const CACHE_TIME_KEY = 'qr:cacheTime';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 jam (kita gunakan manual sync untuk update)
@@ -128,6 +130,20 @@ export async function logActivity(user, activity, details) {
 
 export async function getGlobalHistory(userRole) {
   return await callApi('getGlobalHistory', { userRole });
+}
+
+/* --- GUEST BOOK / ATTENDANCE --- */
+
+export async function checkInCustomer(customer) {
+  return await callApi('checkIn', { customer });
+}
+
+export async function addAndCheckIn(customer) {
+  return await callApi('addAndCheckIn', { customer });
+}
+
+export async function getAttendanceList() {
+  return await callApi('getAttendance');
 }
 
 /* --- CUSTOMER DATA --- */
