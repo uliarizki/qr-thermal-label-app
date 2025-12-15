@@ -68,7 +68,15 @@ export default function CustomerDetailModal({ customer, onClose }) {
                 scale: 2,
                 useCORS: true,
                 allowTaint: true,
-                logging: false
+                logging: false,
+                onClone: (clonedDoc) => {
+                    // Reset transform to ensure high-res capture even on mobile
+                    const card = clonedDoc.querySelector('.digital-card');
+                    if (card) {
+                        card.style.transform = 'scale(1)';
+                        card.style.marginBottom = '0';
+                    }
+                }
             });
 
             const navUrl = canvas.toDataURL('image/png');
@@ -98,7 +106,15 @@ export default function CustomerDetailModal({ customer, onClose }) {
                 scale: 2,
                 useCORS: true,
                 allowTaint: true,
-                logging: false
+                logging: false,
+                onClone: (clonedDoc) => {
+                    // Reset transform to ensure high-res capture even on mobile
+                    const card = clonedDoc.querySelector('.digital-card');
+                    if (card) {
+                        card.style.transform = 'scale(1)';
+                        card.style.marginBottom = '0';
+                    }
+                }
             });
 
             canvas.toBlob(async (blob) => {

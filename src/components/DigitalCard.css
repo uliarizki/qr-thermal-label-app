@@ -180,3 +180,21 @@
     color: #ccc;
     font-weight: 300;
 }
+
+/* === RESPONSIVE SCALING FOR MOBILE === */
+@media (max-width: 540px) {
+    .digital-card {
+        transform: scale(0.7);
+        transform-origin: top center;
+        /* Reduce vertical space occupied by the scaled card */
+        margin-bottom: -90px;
+    }
+}
+
+@media (max-width: 400px) {
+    .digital-card {
+        transform: scale(0.58);
+        transform-origin: top center;
+        margin-bottom: -120px;
+    }
+}
