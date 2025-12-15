@@ -60,6 +60,10 @@ function doPost(e) {
                 // READ operation - No lock needed (concurrency allowed)
                 result = getCustomerData();
                 break;
+            case 'getCustomersLite':
+                // Optimized for Search: Returns only ID, Nama, Kota
+                result = getCustomerDataLite();
+                break;
             case 'addCustomer':
                 // WRITE operation
                 result = addCustomerData(payload.customer);
@@ -188,6 +192,20 @@ function getCustomerData() {
     // saveToCache(CACHE_KEY_CUSTOMERS, customers);
 
     return customers;
+}
+
+function getCustomerDataLite() {
+    const sheet = getSheet(SHEET_CUSTOMERS);
+    const data = sheet.getDataRange().getValues();
+
+    // Return only ID (Col B), Nama (Col C), Kota (Col D), Cabang (Col G)
+    // Faster parsing & smaller JSON size
+    return data.slice(1).map(row => ({
+        id: row[1],
+        nama: row[2],
+        kota: row[3],
+        cabang: row[6] // Include Cabang for context
+    }));
 }
 
 function addCustomerData(c) {

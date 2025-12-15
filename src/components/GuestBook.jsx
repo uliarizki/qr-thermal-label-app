@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import QRScanner from './QRScanner';
-import { checkInCustomer, addAndCheckIn, getAttendanceList, getCustomers } from '../utils/googleSheets';
+import { checkInCustomer, addAndCheckIn, getAttendanceList, getCustomers, getCustomersLite } from '../utils/googleSheets';
 import { toast } from 'react-hot-toast';
 import { Icons } from './Icons';
 import '../App.css';
@@ -71,7 +71,7 @@ export default function GuestBook() {
     const fetchCustomers = async () => {
         const toastId = toast.loading('Memuat data customer...');
         try {
-            const res = await getCustomers();
+            const res = await getCustomersLite(); // Use Lite version
             if (res.success) {
                 setAllCustomers(res.data); // data: [{id, nama, kota, ...}]
                 setDataLoaded(true);

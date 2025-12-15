@@ -224,6 +224,28 @@ export async function getCustomers(forceReload = false) {
   return { success: false, error: result.error };
 }
 
+export async function getCustomersLite(forceReload = false) {
+  // 1. Return cache if available
+  const CACHE_KEY_LITE = 'qr:customersLite';
+  if (!forceReload && typeof window !== 'undefined') {
+    const cached = localStorage.getItem(CACHE_KEY_LITE);
+    if (cached) return { success: true, data: JSON.parse(cached), source: 'cache' };
+  }
+
+  // 2. Fetch from API
+  console.log('Fetching LITE data...');
+  const result = await callApi('getCustomersLite');
+
+  if (result.success) {
+    // 3. Save to LocalStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CACHE_KEY_LITE, JSON.stringify(result.data));
+    }
+    return { success: true, data: result.data, source: 'api' };
+  }
+  return { success: false, error: result.error };
+}
+
 // Tambah customer baru
 export async function addCustomer(customerData) {
   if (!customerData.nama || !customerData.kota || !customerData.cabang) {
