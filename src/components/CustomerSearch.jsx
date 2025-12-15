@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
-import QRCode from 'react-qr-code';
+// import QRCode from 'react-qr-code'; // Removed to prevent lag on huge lists
 
 import { Icons } from './Icons';
 import { addHistory } from '../utils/history';
@@ -19,8 +19,9 @@ export default function CustomerSearch({
   initialQuery
 }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeView, setActiveView] = useState('grid');
   const [filteredCustomers, setFilteredCustomers] = useState([]);
-  const [activeView, setActiveView] = useState('grid'); // 'grid' | 'list'
+  const [isSearching, setIsSearching] = useState(false); // New: Track search status
 
   // 1. Handle Initial Query (e.g. from History)
   useEffect(() => {
@@ -29,7 +30,7 @@ export default function CustomerSearch({
     }
   }, [initialQuery]);
 
-  // 2. Initial Load from LocalStorage (only if no initialQuery provided)
+  // 2. Initial Load from LocalStorage
   useEffect(() => {
     if (typeof window !== 'undefined' && !initialQuery) {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -40,14 +41,12 @@ export default function CustomerSearch({
     }
   }, [initialQuery]);
 
-  // 3. Persist View Preference
+  // 3. Persist View and Query
   const toggleView = (mode) => {
     setActiveView(mode);
     localStorage.setItem('qr:viewMode', mode);
   };
 
-  // 4. Persist Search Query
-  // 4. Persist Search Query
   useEffect(() => {
     if (typeof window !== 'undefined') {
       if (searchQuery) localStorage.setItem(STORAGE_KEY, searchQuery);
@@ -55,7 +54,7 @@ export default function CustomerSearch({
     }
   }, [searchQuery]);
 
-  // 4b. Log Search History on Unmount
+  // 4. Log Search History
   const queryRef = useRef(searchQuery);
   useEffect(() => {
     queryRef.current = searchQuery;
@@ -65,8 +64,6 @@ export default function CustomerSearch({
     return () => {
       const finalQuery = queryRef.current;
       if (finalQuery && finalQuery.trim().length > 2) {
-        // Debounce history? Or just log.
-        // History util usually handles some deduplication or we can trust the user won't spam page switching.
         addHistory('SEARCH', {
           query: finalQuery,
           timestamp: new Date()
@@ -75,27 +72,39 @@ export default function CustomerSearch({
     };
   }, []);
 
-
   // 5. Filter Logic (Debounced)
   useEffect(() => {
+    // Start searching immediately when query changes
+    if (searchQuery.trim()) {
+      setIsSearching(true);
+    } else {
+      setIsSearching(false);
+      setFilteredCustomers([]);
+    }
+
     const timer = setTimeout(() => {
-      if (!searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+
+      if (!query) {
         setFilteredCustomers([]);
+        setIsSearching(false);
         return;
       }
 
-      const terms = searchQuery.toLowerCase().trim().split(/\s+/).filter(Boolean);
-
+      const terms = query.split(/\s+/).filter(Boolean);
       const results = customers.filter(c => {
+        if (c.nama && c.nama.toLowerCase().includes(query)) return true;
         const haystack = `${c.id || ''} ${c.nama || ''} ${c.kota || ''} ${c.pabrik || ''} ${c.sales || ''}`.toLowerCase();
         return terms.every(term => haystack.includes(term));
       });
 
       setFilteredCustomers(results);
+      setIsSearching(false); // Search done
     }, 300);
 
     return () => clearTimeout(timer);
   }, [searchQuery, customers]);
+
 
   // 6. Handle Selection
   const handleCardClick = (customer) => {
@@ -168,55 +177,49 @@ export default function CustomerSearch({
       )}
 
       {/* SKELETON LOADING */}
-      {isSyncing && (
+      {(isSyncing || isSearching) && (
         <div style={{ marginBottom: 20 }}>
           <Skeleton count={3} height={40} style={{ marginBottom: 10 }} />
         </div>
       )}
 
       {/* EMPTY STATES */}
-      {!isSyncing && searchQuery.trim() && filteredCustomers.length === 0 && (
+      {!isSyncing && !isSearching && searchQuery.trim() && filteredCustomers.length === 0 && (
         <p className="no-data">❌ Tidak ada hasil. Coba "Sync" jika data barusan diinput.</p>
       )}
 
-      {!isSyncing && !searchQuery.trim() && filteredCustomers.length === 0 && (
+      {!isSyncing && !searchQuery.trim() && (
         <p className="no-data">💡 Ketik untuk mencari dari local data</p>
       )}
 
-      {/* CUSTOMER LIST */}
-      <div className={`customer-list ${activeView}-view`}>
-        {filteredCustomers.map((customer, idx) => (
-          <div
-            key={customer.id || idx}
-            className="customer-card"
-            onClick={() => handleCardClick(customer)}
-          >
-            <div className="customer-header">
-              <span className="customer-id">{customer.id}</span>
-              <span className="customer-name">{customer.nama}</span>
-            </div>
-            <div className="customer-details">
-              <div className="detail-item city" title="Kota">
-                {customer.kota ? `📍 ${customer.kota}` : <span className="empty">-</span>}
+      {/* CUSTOMER LIST: Only render if we have a query and results */}
+      {searchQuery.trim().length > 0 && filteredCustomers.length > 0 && (
+        <div className={`customer-list ${activeView}-view`}>
+          {filteredCustomers.map((customer, idx) => (
+            <div
+              key={customer.id || idx}
+              className="customer-card"
+              onClick={() => handleCardClick(customer)}
+            >
+              <div className="customer-header">
+                <span className="customer-id">{customer.id}</span>
+                <span className="customer-name">{customer.nama}</span>
               </div>
-              <div className="detail-item phone" title="Telepon">
-                {customer.telp ? `📱 ${customer.telp}` : <span className="empty">-</span>}
-              </div>
-              <div className="detail-item factory" title="Pabrik/Cabang">
-                {customer.cabang || customer.pabrik ? `🏭 ${customer.cabang || customer.pabrik}` : <span className="empty">-</span>}
+              <div className="customer-details">
+                <div className="detail-item city" title="Kota">
+                  {customer.kota ? `📍 ${customer.kota}` : <span className="empty">-</span>}
+                </div>
+                <div className="detail-item phone" title="Telepon">
+                  {customer.telp ? `📱 ${customer.telp}` : <span className="empty">-</span>}
+                </div>
+                <div className="detail-item factory" title="Pabrik/Cabang">
+                  {customer.cabang || customer.pabrik ? `🏭 ${customer.cabang || customer.pabrik}` : <span className="empty">-</span>}
+                </div>
               </div>
             </div>
-            {/* Show QR in list view or grid, helpful visual */}
-            <div className="customer-qr" style={{ background: 'white', padding: 5, display: 'inline-block', borderRadius: 4 }}>
-              <QRCode
-                value={customer.kode || customer.id || 'N/A'}
-                size={64}
-                viewBox={`0 0 256 256`}
-              />
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

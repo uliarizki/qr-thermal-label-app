@@ -9,7 +9,7 @@ import History from './components/History';
 import Login from './components/Login';
 import AdminPanel from './components/AdminPanel'; // NEW
 import CustomerDetailModal from './components/CustomerDetailModal';
-import { getCustomers, getLastUpdate } from './utils/googleSheets';
+import { getCustomers, getLastUpdate, getCachedCustomers } from './utils/googleSheets';
 import { Icons } from './components/Icons';
 import './App.css';
 
@@ -24,7 +24,11 @@ function AppContent() {
 
   const [activeTab, setActiveTab] = useState(getStoredTab);
   const [scannedData, setScannedData] = useState(null);
-  const [customers, setCustomers] = useState([]);
+  const [customers, setCustomers] = useState(() => {
+    const cached = getCachedCustomers();
+    console.log('🚀 App State Init: Loaded from cache?', cached ? cached.length : 0);
+    return cached || [];
+  });
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [globalSelectedCustomer, setGlobalSelectedCustomer] = useState(null);
@@ -77,89 +81,125 @@ function AppContent() {
     }
   };
 
-  useEffect(() => {
-    // Initial Hash Check
-    const hash = window.location.hash.replace('#', '');
-    if (hash && ['scan', 'search', 'add', 'history', 'admin'].includes(hash)) {
-      setActiveTab(hash);
-    }
+  const handleSync = async (silent = false) => {
+    // Fix: onClick passes an event object, which is truthy. 
+    // We must ensure silent is strictly boolean true to enable silent mode.
+    const isSilent = silent === true;
 
-    // Handle Back Button
-    const handlePopState = (event) => {
-      const state = event.state;
-      // Only navigate if it's a valid MAIN tab. Ignore 'modal' or internal states.
-      if (state?.tab && ['scan', 'search', 'add', 'history', 'admin'].includes(state.tab)) {
-        setActiveTab(state.tab);
-      } else {
-        // Fallback or ignore
-        const currentHash = window.location.hash.replace('#', '');
-        if (currentHash && ['scan', 'search', 'add', 'history', 'admin'].includes(currentHash)) {
-          setActiveTab(currentHash);
-        }
-      }
-    };
+    if (!isSilent) setIsSyncing(true);
+    const toastId = isSilent ? null : toast.loading('Syncing data...');
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+    // Pass forceReload=true to getCustomers to bypass cache
+    const result = await getCustomers(true);
 
-  // Persist last tab (Legacy)
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem('qr:lastTab', activeTab);
-  }, [activeTab]);
-
-  // ... (Load Customers effect remains same)
-
-  const handleSync = async () => {
-    setIsSyncing(true);
-    const toastId = toast.loading('Syncing data...');
-    const result = await getCustomers(true); // Force fetch
-    setIsSyncing(false);
+    if (!isSilent) setIsSyncing(false);
 
     if (result.success) {
       setCustomers(result.data || []);
       setLastUpdated(new Date());
-      toast.success('Data berhasil disinkronisasi!', { id: toastId });
+      if (!isSilent && toastId) toast.success('Data berhasil disinkronisasi!', { id: toastId });
     } else {
-      toast.error('Gagal sync data: ' + result.error, { id: toastId });
+      if (!isSilent && toastId) toast.error('Gagal sync data: ' + result.error, { id: toastId });
     }
   };
 
+  // Auto-Sync & Focus-Sync Strategy
+  useEffect(() => {
+    // 1. Auto-sync every 5 minutes
+    const intervalId = setInterval(() => {
+      if (user) { // Only sync if logged in
+        console.log('⚡ Auto-sync triggered');
+        handleSync(true); // Silent sync
+      }
+    }, 5 * 60 * 1000);
+
+    // 2. Sync on Window Focus
+    const handleFocus = () => {
+      // Optional: Debounce or check last update time to prevent spam
+      if (user) {
+        console.log('👀 Window focused, syncing...');
+        handleSync(true); // Silent sync
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user]); // Re-attach if user changes (login/logout)
+
   const handleScan = (data) => {
     // Construct customer object from scan
-    // Note: data might just be the string content, we need to handle it. 
-    // If scanning a customer ID, likely need to find it in the 'customers' list or just display raw.
-    // For now, let's try to query it from existing customers list first
-    const found = customers.find(c => c.id === data || c.kode === data);
+    // Handle if data is already an object (from QRScanner JSON parse)
+    if (typeof data === 'object' && data !== null) {
+      // Check if it's the expected format {it, nt, ...}
+      if (data.it || data.nt) {
+        setGlobalSelectedCustomer({
+          id: data.it || 'N/A',
+          nama: data.nt || 'Unknown',
+          kota: data.at || '',
+          sales: data.pt || '', // Map pt to sales
+          pabrik: data.kp || '', // Map kp to pabrik
+          cabang: data.ws || '', // Map ws to cabang
+          telp: data.np || '',
+          kode: JSON.stringify(data) // Keep raw data for QR regeneration
+        });
+        return;
+      }
+    }
+
+    // Fallback for string IDs or unknown formats
+    const dataString = typeof data === 'string' ? data : JSON.stringify(data);
+
+    // Try to find in existing customers
+    const found = customers.find(c => c.id === dataString || c.kode === dataString);
 
     if (found) {
       setGlobalSelectedCustomer(found);
     } else {
       // Create temp object for unknown/raw scan
       setGlobalSelectedCustomer({
-        id: data, // Assuming data is ID if not found
+        id: dataString,
         nama: 'Unknown / Raw Scan',
         kota: '-',
         telp: '-',
         cabang: '-',
-        kode: data
+        kode: dataString
       });
     }
   };
 
   const handleAddCustomer = (newCustomer) => {
+    // 1. Sync Immediately
     handleSync();
 
-    // Direct Print Preview Mapping
-    const printData = {
-      it: newCustomer.id || 'N/A', // ID might be empty if auto-generated
-      nt: newCustomer.nama,
-      at: newCustomer.kota,
-      // Add other fields if PrintPreview uses them
+
+
+    // Fix: Construct a standard customer object for immediate display
+    // The previous code used QR keys (it, nt) which caused the modal to show empty data
+    const displayCustomer = {
+      id: newCustomer.id || '',
+      nama: newCustomer.nama,
+      kota: newCustomer.kota,
+      sales: newCustomer.sales || '',
+      pabrik: newCustomer.pabrik || '',
+      cabang: newCustomer.cabang || '',
+      telp: newCustomer.telp || '',
+      // Add 'kode' representing the QR content so PrintPreview works correctly
+      kode: JSON.stringify({
+        it: newCustomer.id || '',
+        nt: newCustomer.nama,
+        at: newCustomer.kota,
+        pt: newCustomer.sales || '',
+        kp: newCustomer.pabrik || '',
+        ws: newCustomer.cabang || '',
+        np: newCustomer.telp || ''
+      })
     };
 
-    setGlobalSelectedCustomer(printData);
+    setGlobalSelectedCustomer(displayCustomer);
   };
 
   const handleSelectCustomer = (customerData) => {

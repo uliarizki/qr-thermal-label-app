@@ -5,16 +5,18 @@ import { addHistory } from '../utils/history';
 import { Icons } from './Icons';
 import './AddCustomer.css';
 
+const INITIAL_STATE = {
+  id: '',
+  nama: '',
+  kota: '',
+  sales: '',
+  pabrik: '',
+  cabang: 'BT SMG',
+  telp: ''
+};
+
 export default function AddCustomer({ onAdd }) {
-  const [formData, setFormData] = useState({
-    id: '',
-    nama: '',
-    kota: '',
-    sales: '',
-    pabrik: '',
-    cabang: 'BT SMG',
-    telp: ''
-  });
+  const [formData, setFormData] = useState(INITIAL_STATE);
 
   const [loading, setLoading] = useState(false);
 
@@ -31,56 +33,53 @@ export default function AddCustomer({ onAdd }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Setup upperCasedData up front
+    const upperCasedData = {};
+    Object.keys(formData).forEach(key => {
+      upperCasedData[key] = typeof formData[key] === 'string' ? formData[key].toUpperCase() : formData[key];
+    });
+
     // Validasi mandatory fields
-    if (!formData.nama.trim()) {
+    if (!upperCasedData.nama.trim()) {
       toast.error('Nama customer wajib diisi!');
       return;
     }
 
-    if (!formData.kota.trim()) {
+    if (!upperCasedData.kota.trim()) {
       toast.error('Kota wajib diisi!');
       return;
     }
 
-    if (!formData.cabang.trim()) {
+    if (!upperCasedData.cabang.trim()) {
       toast.error('Cabang wajib diisi!');
       return;
     }
 
-    setLoading(true);
+    setLoading(true); // Start loading
     const toastId = toast.loading('Menambahkan customer...');
 
-    const result = await addCustomer(formData);
+    try {
+      const result = await addCustomer(upperCasedData);
 
-    if (result.success) {
-      toast.success(`Customer "${formData.nama}" berhasil ditambahkan!`, { id: toastId });
-
-      // Log history
-      addHistory('ADD', {
-        customerId: formData.id || 'AUTO',
-        nama: formData.nama,
-        kota: formData.kota,
-        cabang: formData.cabang,
-      });
-
-      // Reset form
-      setFormData({
-        id: '',
-        nama: '',
-        kota: '',
-        sales: '',
-        pabrik: '',
-        cabang: 'BT SMG',
-        telp: ''
-      });
-
-      if (onAdd) onAdd(formData); // Notify parent to refresh
-
-    } else {
-      toast.error(`Error: ${result.error}`, { id: toastId });
+      if (result.success) {
+        toast.success('Customer berhasil ditambahkan!', { id: toastId });
+        // Log history
+        addHistory('ADD', {
+          customerId: upperCasedData.id || 'AUTO',
+          nama: upperCasedData.nama,
+          kota: upperCasedData.kota,
+          cabang: upperCasedData.cabang,
+        });
+        setFormData(INITIAL_STATE); // Reset form
+        if (onAdd) onAdd(upperCasedData); // Update parent list
+      } else {
+        toast.error('Gagal menambahkan: ' + result.error, { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Terjadi kesalahan: ' + error.message, { id: toastId });
+    } finally {
+      setLoading(false); // End loading
     }
-
-    setLoading(false);
   };
 
   return (

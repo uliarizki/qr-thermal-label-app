@@ -179,7 +179,7 @@ export default function CustomerDetailModal({ customer, onClose }) {
                                     it: customer.id,
                                     nt: customer.nama,
                                     at: customer.kota,
-                                    pt: customer.sales || customer.pabrik || customer.cabang,
+                                    pt: customer.sales || customer.pabrik,
                                     ws: customer.cabang,
                                     raw: customer.kode,
                                 }}

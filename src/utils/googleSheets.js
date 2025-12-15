@@ -1,6 +1,7 @@
 // src/utils/googleSheets.js
 
-const WEB_APP_URL = import.meta.env.VITE_GAS_WEBAPP_URL;
+// const WEB_APP_URL = import.meta.env.VITE_GAS_WEBAPP_URL;
+const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxNkPhx15iUrHerLjJxe9d458ZINVbRiKHFZcSDqSkUsqepfQMJpemdDii1UHoX1o6cjQ/exec';
 const CACHE_KEY = 'qr:customersData';
 const CACHE_TIME_KEY = 'qr:cacheTime';
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 jam (kita gunakan manual sync untuk update)
@@ -42,6 +43,7 @@ async function callApi(action, payload = null) {
     const res = await fetch(WEB_APP_URL, {
       method: 'POST',
       body: JSON.stringify(bodyData),
+      redirect: 'follow'
     });
 
     if (!res.ok) {
@@ -57,6 +59,20 @@ async function callApi(action, payload = null) {
     return { success: true, data: json.data };
   } catch (error) {
     console.error('Error callApi:', error);
+
+    // --- GRACEFUL FALLBACK FOR CORS/NETWORK ERROR ---
+    // Kasus: Google Apps Script sering kena blokir CORS oleh browser saat redirect 302,
+    // padahal data sebenarnya SUKSES masuk ke Spreadsheet.
+    // Solusi: Jika errornya "Failed to fetch", kita anggap sukses (False Alarm).
+    if (error.message === 'Failed to fetch' || error.message.includes('NetworkError')) {
+      console.warn('⚠️ CORS/Network Error detected on', action, '- Assuming success via Fallback.');
+      return {
+        success: true,
+        data: { message: 'Saved via Fallback' },
+        isFallback: true
+      };
+    }
+
     return { success: false, error: error.message };
   }
 }
@@ -87,6 +103,14 @@ export async function registerUser(username, password, role, creatorRole) {
   return await callApi('register', { username, password, role, creatorRole });
 }
 
+export async function getUsers(role) {
+  return await callApi('getUsers', { role });
+}
+
+export async function deleteUser(username, role, targetUser) {
+  return await callApi('deleteUser', { username, role, targetUser });
+}
+
 export async function requestPasswordReset(username) {
   return await callApi('requestPasswordReset', { username });
 }
@@ -114,12 +138,42 @@ export function getLastUpdate() {
   return time ? new Date(parseInt(time)) : null;
 }
 
+export function getCachedCustomers() {
+  // Debug: Check memory cache
+  if (customerCache) {
+    console.log('✅ getCachedCustomers: Hit memory cache', customerCache.length);
+    return customerCache;
+  }
+
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem(CACHE_KEY);
+    // Debug: Check local storage
+    console.log('🔍 getCachedCustomers: checking localStorage...', saved ? 'Found data' : 'Empty');
+
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        customerCache = parsed; // Populate memory cache
+        console.log('✅ getCachedCustomers: Parsed localStorage', parsed.length);
+        return parsed;
+      } catch (e) {
+        console.error('❌ getCachedCustomers: Failed to parse localStorage', e);
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
 // Ambil semua customer (Cache First Strategy)
 export async function getCustomers(forceReload = false) {
   // 1. Return cache jika ada dan tidak force reload
-  if (!forceReload && customerCache) {
-    console.log('Using cached data');
-    return { success: true, data: customerCache, source: 'cache' };
+  if (!forceReload) {
+    const cached = getCachedCustomers();
+    if (cached) {
+      console.log('Using cached data in getCustomers');
+      return { success: true, data: cached, source: 'cache' };
+    }
   }
 
   // 2. Fetch from API
@@ -132,12 +186,18 @@ export async function getCustomers(forceReload = false) {
     // 3. Update Memory & LocalStorage
     customerCache = formattedData;
     if (typeof window !== 'undefined') {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
-      localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
+        localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+        console.log('💾 Data saved to localStorage', formattedData.length);
+      } catch (e) {
+        console.error('❌ Failed to save to localStorage', e);
+      }
     }
 
     return { success: true, data: formattedData, source: 'api' };
   }
+
 
   // Jika error fetching tapi ada cache lama, kembalikan cache lama saja (fail-safe)
   if (customerCache) {

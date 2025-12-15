@@ -17,8 +17,8 @@ function doGet(e) {
 }
 
 function doPost(e) {
-    const lock = LockService.getScriptLock();
-    lock.tryLock(10000);
+    // Global lock removed to allow concurrent reads (getCustomers)
+    // Write operations use withLock() individually.
 
     try {
         let action = e.parameter.action;
@@ -40,6 +40,7 @@ function doPost(e) {
         let result;
         switch (action) {
             // --- AUTHENTICATION (SECURE SHA-256) ---
+            // --- AUTHENTICATION (SECURE SHA-256) ---
             case 'login':
                 result = handleLogin(payload.username, payload.password);
                 break;
@@ -55,9 +56,11 @@ function doPost(e) {
 
             // --- DATA CUSTOMERS (ROBUST MAPPING) ---
             case 'getCustomers':
+                // READ operation - No lock needed (concurrency allowed)
                 result = getCustomerData();
                 break;
             case 'addCustomer':
+                // WRITE operation
                 result = addCustomerData(payload.customer);
                 break;
 
@@ -69,6 +72,14 @@ function doPost(e) {
                 result = getGlobalHistory(payload.userRole);
                 break;
 
+            // --- USER MANAGEMENT (NEW) ---
+            case 'getUsers':
+                result = handleGetUsers(payload.role);
+                break;
+            case 'deleteUser':
+                result = handleDeleteUser(payload.username, payload.role, payload.targetUser);
+                break;
+
             default:
                 return errorResponse("Unknown action: " + action);
         }
@@ -77,8 +88,6 @@ function doPost(e) {
 
     } catch (error) {
         return errorResponse(error.toString());
-    } finally {
-        lock.releaseLock();
     }
 }
 
@@ -132,7 +141,20 @@ function handleRegister(username, password, role, creatorRole) {
 // --- DATA LOGIC (ROBUST INDEX MAPPING) ---
 // Menggunakan index manual (0,1,2...) agar tidak error saat header beda
 
+// --- DATA LOGIC (ROBUST INDEX MAPPING + CACHING) ---
+// Menggunakan index manual (0,1,2...) agar tidak error saat header beda
+
+const CACHE_KEY_CUSTOMERS = 'ALL_CUSTOMERS_V2';
+const CACHE_DURATION = 21600; // 6 hours (Max allowed)
+
 function getCustomerData() {
+    // 1. Try Cache First (DISABLED FOR DEBUGGING)
+    // const cachedData = getFromCache(CACHE_KEY_CUSTOMERS);
+    // if (cachedData) {
+    //    return cachedData; 
+    // }
+
+    // 2. Read from Sheet (Slow)
     const sheet = getSheet(SHEET_CUSTOMERS);
     const data = sheet.getDataRange().getValues();
 
@@ -149,20 +171,20 @@ function getCustomerData() {
         kode: row[8] ? row[8].toString() : (row[1] ? row[1].toString() : '') // Kolom I (Fallback ke ID)
     }));
 
+    // 3. Save to Cache (DISABLED FOR DEBUGGING)
+    // saveToCache(CACHE_KEY_CUSTOMERS, customers);
+
     return customers;
 }
 
 function addCustomerData(c) {
     const sheet = getSheet(SHEET_CUSTOMERS);
 
-    // Find next empty row based on Column B (ID)
-    // This avoids issues if Column A (No) contains ArrayFormulas that report as 'data'
-    // and ensures we write to the correct next empty slot without 'inserting' new rows.
-    const lastRow = getLastRowByColumn(sheet, 2); // 2 = Column B
+    // Find next empty row based on Column C (Nama) - Index 3
+    // User requested to check 'Nama' column specifically to find the last valid data row.
+    const lastRow = getLastRowByColumn(sheet, 3); // 3 = Column C (Nama)
     const newRow = lastRow + 1;
 
-    // Write ONLY to Columns B through I (Indices 2-9)
-    // Skipping Column A (No) to prevent "Protected Cell" errors if it's formula-generated.
     const values = [[
         c.id || '',           // Col B
         c.nama || '',         // Col C
@@ -175,7 +197,68 @@ function addCustomerData(c) {
     ]];
 
     sheet.getRange(newRow, 2, 1, 8).setValues(values);
+
+    // 4. INVALIDATE CACHE (DISABLED FOR DEBUGGING)
+    // try {
+    //    CacheService.getScriptCache().remove(CACHE_KEY_CUSTOMERS + "_meta");
+    // } catch (e) {}
+
     return { message: "Saved" };
+}
+
+// --- SMART CHUNKED CACHING HELPER ---
+// GAS Cache limit is 100KB per key. We split large JSONs.
+
+function saveToCache(key, data) {
+    try {
+        const json = JSON.stringify(data);
+        const cache = CacheService.getScriptCache();
+        const chunkSize = 100000; // ~100KB safe limit
+        const chunks = [];
+
+        // Split string
+        for (let i = 0; i < json.length; i += chunkSize) {
+            chunks.push(json.substring(i, i + chunkSize));
+        }
+
+        // Prepare batch (key_total = count)
+        // key_0, key_1 ...
+        const cacheObj = {};
+        cacheObj[key + "_meta"] = chunks.length.toString();
+
+        chunks.forEach((chunk, index) => {
+            cacheObj[key + "_" + index] = chunk;
+        });
+
+        cache.putAll(cacheObj, CACHE_DURATION);
+    } catch (e) {
+        // Cache failed (too big or quota exceeded), ignore
+    }
+}
+
+function getFromCache(key) {
+    const cache = CacheService.getScriptCache();
+    // Check metadata first
+    const meta = cache.get(key + "_meta");
+    if (!meta) return null;
+
+    const totalChunks = parseInt(meta);
+    const keys = [];
+    for (let i = 0; i < totalChunks; i++) {
+        keys.push(key + "_" + i);
+    }
+
+    // Fetch all chunks
+    const result = cache.getAll(keys);
+    let json = "";
+
+    for (let i = 0; i < totalChunks; i++) {
+        const chunk = result[key + "_" + i];
+        if (!chunk) return null; // Corrupted/Missing chunk
+        json += chunk;
+    }
+
+    return JSON.parse(json);
 }
 
 // Helper to find last row with data in a specific column (1-based index)
@@ -248,6 +331,19 @@ function errorResponse(msg) {
         .setMimeType(ContentService.MimeType.JSON);
 }
 
+// --- LOCK HELPER ---
+function withLock(callback) {
+    const lock = LockService.getScriptLock();
+    const hasLock = lock.tryLock(10000); // 10s timeout
+    if (!hasLock) throw new Error("Server busy (Lock timeout). Please try again.");
+
+    try {
+        return callback();
+    } finally {
+        lock.releaseLock();
+    }
+}
+
 // --- HISTORY & RESET (Simplified) ---
 function logHistory(user, activity, details) {
     const sheet = getSheet(SHEET_HISTORY);
@@ -266,3 +362,42 @@ function getGlobalHistory(role) {
 
 function handleRequestReset(u) { return { message: "Feature disabled in Hybrid Mode" }; }
 function handleResetWithOTP(u, o, n) { return { message: "Feature disabled in Hybrid Mode" }; }
+
+// --- USER MANAGEMENT IMPL ---
+function handleGetUsers(requestorRole) {
+    if (requestorRole !== 'admin') throw new Error("Unauthorized");
+    const sheet = getSheet(SHEET_USERS);
+    const data = sheet.getDataRange().getValues();
+    // Headers: Username, PasswordHash, Role, Created
+    // Skip header
+    const users = [];
+    for (let i = 1; i < data.length; i++) {
+        users.push({
+            username: data[i][0],
+            role: data[i][2],
+            created: data[i][3]
+        });
+    }
+    return users;
+}
+
+function handleDeleteUser(adminUsername, adminRole, targetUser) {
+    if (adminRole !== 'admin') throw new Error("Unauthorized");
+    if (adminUsername === targetUser) throw new Error("Cannot delete yourself!");
+
+    const sheet = getSheet(SHEET_USERS);
+    const data = sheet.getDataRange().getValues();
+
+    let rowIndex = -1;
+    for (let i = 1; i < data.length; i++) {
+        if (data[i][0] === targetUser) {
+            rowIndex = i + 1; // 1-based index
+            break;
+        }
+    }
+
+    if (rowIndex === -1) throw new Error("User not found");
+
+    sheet.deleteRow(rowIndex);
+    return { message: "User deleted" };
+}

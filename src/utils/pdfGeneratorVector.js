@@ -25,12 +25,12 @@ export async function generateLabelPdfVector(data, sizeMm) {
   const ptPerMm = 2.83465;
   const pxToMm = (px) => (px * 0.264583); // 1px ≈ 0.2646mm
 
-  // Font sizes meniru proporsi di preview
-  const nameFontPt = pxToPt(scaledHeight * 0.325); // sedikit lebih tebal via ukuran
-  const cityFontPt = pxToPt(scaledHeight * 0.265);
+  // Font sizes meniru proporsi di preview (Update to match PrintPreview exactly)
+  const nameFontPt = pxToPt(scaledHeight * 0.31);
+  const cityFontPt = pxToPt(scaledHeight * 0.25);
   const typeFontPt = pxToPt(scaledHeight * 0.25);
   const idFontPt = pxToPt(scaledHeight * 0.32);
-  const wsFontPt = idFontPt;             // samakan dengan ID
+  const wsFontPt = pxToPt(scaledHeight * 0.28); // Was same as ID, now explicit 0.28 matching CSS
 
   const lineHeight = (pt) => (pt / ptPerMm) * 1.1; // line height dalam mm
 
@@ -78,15 +78,17 @@ export async function generateLabelPdfVector(data, sizeMm) {
   textY += lineHeight(cityFontPt);
   doc.setFont('helvetica', 'bold');
 
-  // Pastikan baris ini tidak menabrak footer
+  // Logic positioning WS (Cabang) -> Bottom Alignment like marginTop: auto
   const wsText = safeText(data.ws);
   doc.setFontSize(wsFontPt);
   const wsWidth = doc.getTextWidth(wsText);
   const rightPadding = padding + gap * 0.6; // sedikit lebih lega dari kanan
   const wsX = scaledWidth - rightPadding - wsWidth;
-  const desiredWsY = qrY + qrSize + gap * 2.8;   // sejajar vertikal dengan ID
-  const maxWsY = scaledHeight - padding - (wsFontPt / ptPerMm);
-  const wsY = Math.min(desiredWsY, maxWsY);
+
+  // Align WS to bottom padding
+  const wsY = scaledHeight - padding - (wsFontPt / ptPerMm * 0.2); // Adjust baseline slightly
+
+  // Calculate max text Y to avoid collision
   const maxTextY = wsY - gap - lineHeight(wsFontPt);
 
   doc.setFontSize(typeFontPt);
@@ -99,6 +101,7 @@ export async function generateLabelPdfVector(data, sizeMm) {
   doc.text(wsText, wsX, wsY);
 
   // ---- ID di bawah QR, center ----
+  // Independent positioning: QR Bottom + Gap + Font Height
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(idFontPt);
   doc.setFont('helvetica', 'bold');
@@ -106,7 +109,10 @@ export async function generateLabelPdfVector(data, sizeMm) {
   const idText = safeText(data.it);
   const idWidth = doc.getTextWidth(idText);
   const idX = qrX + qrSize / 2 - idWidth / 2;  // tengah QR
-  const idY = wsY;                              // sejajarkan vertikal dengan WS
+
+  // Position ID strictly below QR
+  const idLineHeight = lineHeight(idFontPt);
+  const idY = qrY + qrSize + gap + idLineHeight * 0.8; // Approximate visual center below QR
 
   doc.text(idText, idX, idY);
 

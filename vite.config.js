@@ -7,12 +7,14 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: [],
+      includeAssets: ['logo_new.png'],
       manifest: {
-        name: 'QR Thermal Label App',
-        short_name: 'QRLabel',
-        description: 'Scan QR & Print Thermal Labels Offline',
+        name: 'Bintang Mas - QR Label App',
+        short_name: 'Bintang Mas',
+        description: 'Aplikasi Cetak Label QR Thermal Bintang Mas',
         theme_color: '#ffffff',
+        display: 'standalone',
+        background_color: '#ffffff',
         icons: [
           {
             src: 'pwa-192x192.png',
@@ -23,6 +25,24 @@ export default defineConfig({
             src: 'pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png'
+          }
+        ]
+      },
+      workbox: {
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
           }
         ]
       }
