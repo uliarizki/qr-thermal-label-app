@@ -12,18 +12,18 @@ Sistem ini menggunakan arsitektur **Serverless** di mana Google Apps Script bert
 
 ```mermaid
 graph TD
-    User((User/Admin)) -->|Interact| FE[Frontend React PWA]
-    FE -->|API Request (POST)| GAS[Backend Google Apps Script]
+    User(("User/Admin")) -->|"Interact"| FE[Frontend React PWA]
+    FE -->|"API Request (POST)"| GAS[Backend Google Apps Script]
     
     subgraph "Google Cloud"
-        GAS -->|Read/Write| DB[(Google Spreadsheet)]
-        GAS -->|Auth Check| USERS[User Sheet]
-        GAS -->|Log| LOGS[History Sheet]
+        GAS -->|"Read/Write"| DB[("Google Spreadsheet")]
+        GAS -->|"Auth Check"| USERS[User Sheet]
+        GAS -->|"Log"| LOGS[History Sheet]
     end
     
     subgraph "Client Side"
-        FE -->|Cache Assets| SW[Service Worker (Workbox)]
-        FE -->|Save Data| LS[Local Storage (Cache)]
+        FE -->|"Cache Assets"| SW[Service Worker (Workbox)]
+        FE -->|"Save Data"| LS[Local Storage (Cache)]
     end
 ```
 
