@@ -223,7 +223,12 @@ function AppContent() {
       {/* BRANDED HEADER */}
       <header className="app-header">
         <div className="header-brand" onClick={() => navigateTo('scan')}>
-          <img src="/logo_brand.png" alt="Bintang Mas" className="nav-logo" />
+          <img
+            src="/logo_brand.png"
+            alt="Bintang Mas"
+            className="nav-logo"
+            style={{ filter: 'drop-shadow(0 0 5px rgba(212,175,55,0.5))' }}
+          />
           <div className="header-text">
             <h1>Bintang Mas</h1>
             <p>Qr Thermal Label App</p>

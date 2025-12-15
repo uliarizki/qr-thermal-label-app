@@ -50,19 +50,26 @@ export default function Login() {
       <div className="login-card" style={{ maxWidth: 480 }}> {/* Widened for desktop */}
 
         {/* LOGO "COIN" STYLE - Hides white corners */}
+        {/* LOGO "PREMIUM" STYLE - Transparent with Glow */}
         <div style={{
-          width: 100,
-          height: 100,
-          margin: '0 auto 20px',
-          borderRadius: '50%',
-          overflow: 'hidden',
-          border: '3px solid #D4AF37',
-          background: 'white',
-          boxShadow: '0 0 20px rgba(212, 175, 55, 0.5)',
+          width: 180,
+          height: 180,
+          margin: '0 auto 10px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          position: 'relative'
         }}>
+          {/* Subtle Ambient Glow behind logo */}
+          <div style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            background: 'radial-gradient(circle, rgba(212,175,55,0.2) 0%, rgba(0,0,0,0) 70%)',
+            borderRadius: '50%',
+            zIndex: 0
+          }} />
+
           <img
             src="/logo_brand.png"
             alt="Bintang Mas Logo"
@@ -71,7 +78,8 @@ export default function Login() {
               width: '100%',
               height: '100%',
               objectFit: 'contain',
-              transform: 'scale(0.8)' // Give it some breathing room inside circle
+              zIndex: 1,
+              filter: 'drop-shadow(0 0 15px rgba(212,175,55,0.4))'
             }}
           />
         </div>
