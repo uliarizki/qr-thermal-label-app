@@ -63,14 +63,17 @@ body {
   cursor: pointer;
 }
 
+/* FIXED: Logo Size Constraints */
+.nav-logo,
 .header-logo {
-  width: 36px;
-  height: 36px;
+  height: 50px;
+  /* Fixed height for header */
+  width: auto;
+  /* Maintain aspect ratio */
   object-fit: contain;
-  background: white;
-  border-radius: 50%;
-  padding: 2px;
-  border: 1px solid var(--primary-gold);
+  /* Removed background: white to support transparency */
+  filter: drop-shadow(0 0 5px rgba(212, 175, 55, 0.3));
+  /* Subtle Gold Glow */
 }
 
 .header-text h1 {
