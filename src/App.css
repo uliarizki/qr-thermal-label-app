@@ -324,24 +324,51 @@ button {
 }
 
 /* === RESPONSIVE === */
+/* === RESPONSIVE === */
 @media (max-width: 768px) {
   .page-card {
-    padding: 20px;
+    padding: 15px;
+    /* Less padding on mobile card */
   }
 
   .app-header {
-    padding: 20px;
+    padding: 12px 16px;
+    /* Compact padding */
+    flex-direction: column;
+    /* Stack Logo and User Profile */
+    gap: 12px;
+  }
+
+  .header-brand {
+    width: 100%;
+    justify-content: center;
   }
 
   .app-header h1 {
-    font-size: 20px;
+    font-size: 22px;
+  }
+
+  .user-info-section {
+    width: 100%;
+    justify-content: center;
+    border-top: 1px solid rgba(212, 175, 55, 0.2);
+    padding-top: 8px;
   }
 
   .user-name {
-    position: relative;
-    top: 0;
-    right: 0;
-    display: inline-flex;
-    margin-top: 10px;
+    margin: 0;
+    /* Reset margins */
+    background: transparent;
+    border: none;
+    padding: 0;
   }
+}
+
+@media (max-width: 480px) {
+  .tab-btn span {
+    font-size: 9px;
+    /* Smaller font for 5-tab nav */
+  }
+}
+}
 }

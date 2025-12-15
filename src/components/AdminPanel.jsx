@@ -94,7 +94,7 @@ export default function AdminPanel() {
             <div className="page-card" style={{ borderColor: '#D4AF37' }}>
                 <h2 style={{ marginTop: 0, color: '#D4AF37' }}>👑 Admin Control Center</h2>
 
-                <div className="admin-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 20 }}>
+                <div className="admin-grid">
 
                     {/* SECTION 1: CREATE USER */}
                     <div className="admin-section" style={{ background: '#fffdf5', padding: 20, borderRadius: 12, border: '1px solid #eee' }}>
