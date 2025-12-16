@@ -16,7 +16,8 @@ export default function CustomerSearch({
   onSync,
   isSyncing,
   lastUpdated,
-  initialQuery
+  initialQuery,
+  onScanTrigger
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeView, setActiveView] = useState('grid');
@@ -127,8 +128,30 @@ export default function CustomerSearch({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
-            style={{ paddingLeft: 40 }}
+            style={{ paddingLeft: 40, paddingRight: 40 }}
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              style={{
+                position: 'absolute',
+                right: 12,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'transparent',
+                border: 'none',
+                color: '#999',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 4
+              }}
+              title="Bersihkan Pencarian"
+            >
+              <Icons.X size={18} />
+            </button>
+          )}
         </div>
         <button
           className="sync-btn"
@@ -220,6 +243,30 @@ export default function CustomerSearch({
           ))}
         </div>
       )}
+      {/* Floating Scan Button */}
+      <button
+        onClick={onScanTrigger}
+        style={{
+          position: 'fixed',
+          bottom: 80, // Above bottom nav if present, or just bottom right
+          right: 20,
+          background: '#D4AF37',
+          color: 'white',
+          border: 'none',
+          borderRadius: 50,
+          width: 56,
+          height: 56,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+          zIndex: 100,
+          cursor: 'pointer'
+        }}
+        title="Scan QR Code"
+      >
+        <Icons.Scan size={28} />
+      </button>
     </div>
   );
 }

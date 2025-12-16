@@ -9,7 +9,11 @@ const DigitalCard = forwardRef(({ customer }, ref) => {
         <div className="digital-card-container" ref={ref}>
             <div className="digital-card">
                 {/* Background Overlay / Pattern */}
+                {/* Background Overlay / Pattern */}
                 <div className="card-overlay"></div>
+
+                {/* Security Watermark Layer */}
+                <div className="watermark-layer"></div>
 
                 {/* Header: Logo & Branding */}
                 <div className="card-header">
@@ -23,7 +27,16 @@ const DigitalCard = forwardRef(({ customer }, ref) => {
                 {/* Body: Info & QR */}
                 <div className="card-body">
                     <div className="info-section">
-                        <h2 className="customer-name-large">{customer.nama}</h2>
+                        {/* Dynamic Font Size Logic */}
+                        <h2
+                            className="customer-name-large"
+                            style={{
+                                fontSize: customer.nama.length > 30 ? '1.1rem' :
+                                    customer.nama.length > 20 ? '1.3rem' : '1.6rem'
+                            }}
+                        >
+                            {customer.nama}
+                        </h2>
                         <div className="info-grid">
                             <div className="info-item">
                                 <label>ID NUMBER</label>
@@ -38,8 +51,8 @@ const DigitalCard = forwardRef(({ customer }, ref) => {
                                 <span>{customer.cabang || '-'}</span>
                             </div>
                             <div className="info-item">
-                                <label>CONTACT</label>
-                                <span>{customer.telp || '-'}</span>
+                                <label>WHOLESALER</label>
+                                <span>{customer.sales || '-'}</span>
                             </div>
                         </div>
                     </div>
@@ -48,7 +61,7 @@ const DigitalCard = forwardRef(({ customer }, ref) => {
                         <div className="qr-box">
                             <QRCode
                                 value={customer.kode || customer.id || 'N/A'}
-                                size={90}
+                                size={120}
                                 viewBox={`0 0 256 256`}
                                 fgColor="#000000"
                                 bgColor="#ffffff"

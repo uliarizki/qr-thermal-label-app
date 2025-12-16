@@ -80,8 +80,12 @@ export default function CustomerDetailModal({ customer, onClose }) {
             });
 
             const navUrl = canvas.toDataURL('image/png');
+            const cleanName = (customer.nama || 'CUSTOMER').replace(/[\\/:*?"<>|]/g, '').trim();
+            const cleanCity = (customer.kota || 'CITY').replace(/[\\/:*?"<>|]/g, '').trim();
+            const filename = `${cleanName}_${cleanCity}_${customer.id}.png`;
+
             const link = document.createElement('a');
-            link.download = `ID-${customer.id}.png`;
+            link.download = filename;
             link.href = navUrl;
             link.click();
 
@@ -123,7 +127,11 @@ export default function CustomerDetailModal({ customer, onClose }) {
                     return;
                 }
 
-                const file = new File([blob], `ID-${customer.id}.png`, { type: 'image/png' });
+                const cleanName = (customer.nama || 'CUSTOMER').replace(/[\\/:*?"<>|]/g, '').trim();
+                const cleanCity = (customer.kota || 'CITY').replace(/[\\/:*?"<>|]/g, '').trim();
+                const filename = `${cleanName}_${cleanCity}_${customer.id}.png`;
+
+                const file = new File([blob], filename, { type: 'image/png' });
 
                 if (navigator.share) {
                     try {

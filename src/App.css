@@ -29,6 +29,8 @@ body {
   background-color: var(--bg-color);
   color: var(--premium-dark);
   -webkit-font-smoothing: antialiased;
+
+
 }
 
 .app-container {
@@ -37,7 +39,7 @@ body {
   max-width: 100%;
   /* Full Width Canvas */
   margin: 0 auto;
-  background: white;
+  background-color: white;
   min-height: 100vh;
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.1);
 }
@@ -391,4 +393,19 @@ button {
     font-size: 9px;
     /* Smaller font for 5-tab nav */
   }
+}
+
+/* Global Watermark Overlay - Fixed on top of everything */
+.global-watermark-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  pointer-events: none;
+  /* Opacity 6% black fill, widely spaced, smaller text */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Ctext x='50%25' y='50%25' font-size='12' fill='rgba(0, 0, 0, 0.06)' font-family='sans-serif' font-weight='bold' text-anchor='middle' transform='rotate(-30 150 150)'%3E%E2%98%85 BINTANG MAS%3C/text%3E%3C/svg%3E");
+  background-repeat: repeat;
+  mix-blend-mode: multiply;
 }

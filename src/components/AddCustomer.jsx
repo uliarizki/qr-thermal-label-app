@@ -37,6 +37,14 @@ export default function AddCustomer({ onAdd }) {
     }
   };
 
+  const setBranch = (br) => {
+    localStorage.setItem('qr:lastBranch', br);
+    setFormData(prev => ({
+      ...prev,
+      cabang: br
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -78,7 +86,13 @@ export default function AddCustomer({ onAdd }) {
           cabang: upperCasedData.cabang,
         });
 
-        setFormData(getInitialState()); // Reset form preserving branch
+        // Reset form but PRESERVE branch
+        const currentBranch = formData.cabang;
+        setFormData({
+          ...getInitialState(),
+          cabang: currentBranch
+        });
+
         if (onAdd) onAdd(upperCasedData); // Update parent list
       } else {
         toast.error('Gagal menambahkan: ' + result.error, { id: toastId });
@@ -96,6 +110,30 @@ export default function AddCustomer({ onAdd }) {
         <Icons.Plus size={24} />
         Tambah Customer Baru
       </h2>
+
+      {/* BRANCH CONTEXT SELECTOR (Moved to Top) */}
+      <div className="form-group" style={{ marginBottom: 20 }}>
+        <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>Lokasi Data (Cabang) <span className="required">*</span></label>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {['BT SMG', 'BT JKT', 'BT SBY'].map(br => (
+            <button
+              key={br}
+              type="button"
+              onClick={() => setBranch(br)}
+              style={{
+                flex: 1, padding: '12px',
+                border: formData.cabang === br ? '2px solid #D4AF37' : '1px solid #ddd',
+                background: formData.cabang === br ? '#fffdf5' : 'white',
+                color: formData.cabang === br ? '#D4AF37' : '#666',
+                borderRadius: 8, cursor: 'pointer', fontWeight: formData.cabang === br ? 'bold' : 'normal',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {br}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit}>
         {/* MANDATORY FIELDS */}
@@ -130,21 +168,7 @@ export default function AddCustomer({ onAdd }) {
             />
           </div>
 
-          <div className="form-group">
-            <label>Cabang <span className="required">*</span></label>
-            <select
-              name="cabang"
-              value={formData.cabang}
-              onChange={handleChange}
-              required
-            >
-              <option value="">-- Pilih Cabang --</option>
-              <option value="BT SMG">BT SMG</option>
-              <option value="BT JKT">BT JKT</option>
-              <option value="BT SBY">BT SBY</option>
-              {/* Tambah cabang lain sesuai kebutuhan */}
-            </select>
-          </div>
+          {/* Old Cabang Select Removed */}
         </div>
 
         {/* OPTIONAL FIELDS */}

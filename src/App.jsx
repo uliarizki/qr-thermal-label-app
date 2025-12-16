@@ -20,12 +20,37 @@ function AppContent() {
   const { user, logout, loading } = useAuth();
 
   const getStoredTab = () => {
-    if (typeof window === 'undefined') return 'scan';
-    return localStorage.getItem('qr:lastTab') || 'scan';
+    if (typeof window === 'undefined') return 'search';
+    // Priority: URL Hash -> Default (Customer Search)
+    const hash = window.location.hash.replace('#', '');
+    if (hash) return hash;
+    return 'search';
   };
 
   const [activeTab, setActiveTab] = useState(getStoredTab);
   const [scannedData, setScannedData] = useState(null);
+
+  // Handle Browser Back/Forward
+  useEffect(() => {
+    const handlePopState = (event) => {
+      // If state exists, use it
+      if (event.state && event.state.tab) {
+        setActiveTab(event.state.tab);
+        return;
+      }
+
+      // Fallback: Check hash
+      const hash = window.location.hash.replace('#', '');
+      if (hash) {
+        setActiveTab(hash);
+      } else {
+        setActiveTab('search');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
   const [customers, setCustomers] = useState(() => {
     const cached = getCachedCustomers();
     console.log('🚀 App State Init: Loaded from cache?', cached ? cached.length : 0);
@@ -220,11 +245,12 @@ function AppContent() {
   // 3. Main App Layout (Authenticated)
   return (
     <div className="app-container">
+      <div className="global-watermark-overlay"></div>
       <Toaster position="top-center" reverseOrder={false} />
 
       {/* BRANDED HEADER */}
       <header className="app-header">
-        <div className="header-brand" onClick={() => navigateTo('scan')}>
+        <div className="header-brand" onClick={() => navigateTo('search')}>
           <img
             src="/logo_brand.png"
             alt="Bintang Mas"
@@ -264,13 +290,7 @@ function AppContent() {
 
       {/* NAVIGATION TABS */}
       <nav className="tab-navigation">
-        <button
-          className={`tab-btn scan ${activeTab === 'scan' ? 'active' : ''}`}
-          onClick={() => navigateTo('scan')}
-        >
-          <Icons.Scan size={20} />
-          <span>Scan</span>
-        </button>
+
         <button
           className={`tab-btn search ${activeTab === 'search' ? 'active' : ''}`}
           onClick={() => navigateTo('search')}
@@ -315,7 +335,12 @@ function AppContent() {
       {/* CONTENT AREA */}
       <main className="app-content">
         {/* ... content render ... */}
-        {activeTab === 'scan' && <QRScanner onScan={handleScan} />}
+        {activeTab === 'scan' && (
+          <QRScanner
+            onScan={handleScan}
+            onClose={() => navigateTo('search')}
+          />
+        )}
 
         {activeTab === 'search' && (
           <CustomerSearch
@@ -335,6 +360,7 @@ function AppContent() {
               // I should update handleHistorySelect to set a 'restoredSearchQuery' state.
               restoredSearchQuery
             }
+            onScanTrigger={() => navigateTo('scan')}
           />
         )}
 

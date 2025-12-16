@@ -119,16 +119,22 @@ export async function generateLabelPdfVector(data, sizeMm) {
   // ---- Nama file aman ----
   const safeName = (customerName || 'CUSTOMER')
     .replace(/[\\/:*?"<>|]/g, '')
-    .slice(0, 30);
+    .slice(0, 30)
+    .trim();
 
-  // ... inside safeName ...
+  const safeCity = (data.at || 'CITY')
+    .replace(/[\\/:*?"<>|]/g, '')
+    .slice(0, 30)
+    .trim();
+
+  const filename = `${safeName}_${safeCity}_${idText}.pdf`;
 
   if (sizeMm.returnBlob) {
     return {
       blob: doc.output('blob'),
-      filename: `${safeName}_${idText}.pdf`
+      filename: filename
     };
   }
 
-  doc.save(`${safeName}_${idText}.pdf`);
+  doc.save(filename);
 }

@@ -3,7 +3,7 @@ import jsQR from 'jsqr'
 import { addHistory } from '../utils/history'
 import './Components.css'
 
-export default function QRScanner({ onScan }) {
+export default function QRScanner({ onScan, onClose }) {
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
   const streamRef = useRef(null) // Dedicated stream ref for cleanup
@@ -12,7 +12,8 @@ export default function QRScanner({ onScan }) {
   const [lastScanned, setLastScanned] = useState(null)
   const [error, setError] = useState(null)
   const [permissionDenied, setPermissionDenied] = useState(false)
-  const TIMEOUT_DURATION = 120000; // 2 Minutes auto-off
+  /* 60 Seconds auto-off */
+  const TIMEOUT_DURATION = 60000;
 
   // Auto-off Timer
   useEffect(() => {
@@ -166,6 +167,13 @@ export default function QRScanner({ onScan }) {
     return () => cancelAnimationFrame(frameId)
   }, [isScanning, onScan])
 
+  // Handlers
+  const handleOverlayClick = () => {
+    if (!isScanning) {
+      setIsScanning(true);
+    }
+  };
+
   if (!hasCamera) {
     return (
       <div className="scanner-container">
@@ -176,10 +184,9 @@ export default function QRScanner({ onScan }) {
           <button
             className="rescan-btn"
             onClick={() => {
-              setHasCamera(true); // Allow render
+              setHasCamera(true);
               setError(null);
               setPermissionDenied(false);
-              // Force re-trigger of useEffect
               setIsScanning(false);
               setTimeout(() => setIsScanning(true), 100);
             }}
@@ -194,7 +201,35 @@ export default function QRScanner({ onScan }) {
   return (
     <div className="page-card">
       <div className="scanner-container">
-        <div className="scanner-box">
+
+        {/* Back Button (If onClose provided) */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              top: 10,
+              left: 10,
+              zIndex: 20,
+              background: 'rgba(0,0,0,0.6)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '50%',
+              width: 40,
+              height: 40,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 20
+            }}
+          >
+            🔙
+          </button>
+        )}
+
+        {/* Scanner Box with Click-to-Resume */}
+        <div className="scanner-box" onClick={handleOverlayClick} style={{ cursor: !isScanning ? 'pointer' : 'default' }}>
           <video
             ref={videoRef}
             className="scanner-video"
@@ -202,9 +237,28 @@ export default function QRScanner({ onScan }) {
             playsInline
           />
           <canvas ref={canvasRef} style={{ display: 'none' }} />
+
           <div className="scanner-overlay">
-            <div className="scanner-frame"></div>
+            <div className={`scanner-frame ${!isScanning ? 'paused-frame' : ''}`}></div>
+            {!isScanning && (
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                background: 'rgba(0,0,0,0.7)',
+                padding: '15px 25px',
+                borderRadius: 12,
+                color: 'white',
+                textAlign: 'center',
+                pointerEvents: 'none'
+              }}>
+                <div style={{ fontSize: 40, marginBottom: 5 }}>▶️</div>
+                <div style={{ fontSize: 14 }}>Tap layar untuk lanjut scan</div>
+              </div>
+            )}
           </div>
+
           {isScanning && <p className="scanner-hint">Arahkan kamera ke QR Code</p>}
         </div>
 
@@ -221,9 +275,12 @@ export default function QRScanner({ onScan }) {
 
         <button
           className={`toggle-btn ${isScanning ? 'scanning' : 'paused'}`}
-          onClick={() => setIsScanning(!isScanning)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsScanning(!isScanning);
+          }}
         >
-          {isScanning ? '⏸️ Pause Scanner' : '▶️ Resume Scanner (Auto-off aktif 2m)'}
+          {isScanning ? '⏸️ Pause Scanner' : '▶️ Resume Scanner (Auto-off 60s)'}
         </button>
       </div>
     </div>
