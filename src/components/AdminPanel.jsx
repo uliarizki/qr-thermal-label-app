@@ -258,7 +258,9 @@ export default function AdminPanel() {
                                                 </span>
                                             </td>
                                             <td className="col-activity"><strong>{row.activity}</strong></td>
-                                            <td className="col-details">{details}</td>
+                                            <td className="col-details">
+                                                {React.isValidElement(details) ? details : (typeof details === 'object' ? JSON.stringify(details) : String(details))}
+                                            </td>
                                         </tr>
                                     );
                                 })}

@@ -149,7 +149,7 @@ export default function CustomerSearch({
               }}
               title="Bersihkan Pencarian"
             >
-              <Icons.X size={18} />
+              <Icons.Close size={18} />
             </button>
           )}
         </div>

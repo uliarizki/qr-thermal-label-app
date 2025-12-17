@@ -191,6 +191,12 @@ body {
   border-bottom-color: #d4af37;
 }
 
+/* Rose */
+.tab-btn.event.active {
+  color: #e11d48;
+  border-bottom-color: #e11d48;
+}
+
 /* Gold */
 
 .tab-btn.scan:hover {
@@ -207,6 +213,10 @@ body {
 
 .tab-btn.history:hover {
   color: #f59e0b;
+}
+
+.tab-btn.event:hover {
+  color: #e11d48;
 }
 
 .tab-btn.admin:hover {
@@ -273,7 +283,7 @@ button {
   background: radial-gradient(circle, rgba(212, 175, 55, 0.15) 0%, transparent 40%);
   top: -50%;
   left: -50%;
-  animation: rotate 20s linear infinite;
+  /* animation: rotate 20s linear infinite; REMOVED to prevent flickering */
 }
 
 @keyframes rotate {
@@ -405,7 +415,7 @@ button {
   z-index: 9999;
   pointer-events: none;
   /* Opacity 6% black fill, widely spaced, smaller text */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Ctext x='50%25' y='50%25' font-size='12' fill='rgba(0, 0, 0, 0.06)' font-family='sans-serif' font-weight='bold' text-anchor='middle' transform='rotate(-30 150 150)'%3E%E2%98%85 BINTANG MAS%3C/text%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300' viewBox='0 0 300 300'%3E%3Ctext x='50%25' y='50%25' font-size='18' fill='rgba(0, 0, 0, 0.08)' font-family='Brush Script MT, cursive' text-anchor='middle' transform='rotate(-30 150 150)'%3EBintang Mas%3C/text%3E%3C/svg%3E");
   background-repeat: repeat;
   mix-blend-mode: multiply;
 }
