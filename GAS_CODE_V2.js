@@ -68,6 +68,10 @@ function doPost(e) {
                 // WRITE operation
                 result = addCustomerData(payload.customer);
                 break;
+            case 'editCustomer':
+                // WRITE operation
+                result = editCustomerData(payload.customer);
+                break;
 
             // --- HISTORY ---
             case 'logActivity':
@@ -524,4 +528,47 @@ function getAttendanceList() {
     }
     // Return newest first
     return attendees.reverse();
+}
+
+/**
+ * UPDATED: editCustomerData
+ * Alignment with Bintang Mas Backend v2.1
+ */
+function editCustomerData(customer) {
+    return withLock(() => {
+        const sheet = getSheet(SHEET_CUSTOMERS);
+        const data = sheet.getDataRange().getValues();
+
+        // Find customer by ID (Column B - Index 1)
+        const idToFind = String(customer.id);
+        let rowIndex = -1;
+
+        for (let i = 1; i < data.length; i++) {
+            if (String(data[i][1]) === idToFind) {
+                rowIndex = i + 1; // Convert to 1-based row index
+                break;
+            }
+        }
+
+        if (rowIndex === -1) {
+            throw new Error("Customer dengan ID " + idToFind + " tidak ditemukan!");
+        }
+
+        // Map data to Columns (Alignment with getCustomerData mapping)
+        // Row mapping: B=2, C=3, D=4, E=5, F=6, G=7, H=8, I=9
+        // getRange(row, col, numRows, numCols)
+        // We update from Column C (Index 3) to Column I (Index 9) -> 7 columns
+        const range = sheet.getRange(rowIndex, 3, 1, 7);
+        range.setValues([[
+            customer.nama || "",   // Col C
+            customer.kota || "",   // Col D
+            customer.sales || "",  // Col E
+            customer.pabrik || "", // Col F
+            customer.cabang || "", // Col G
+            customer.telp || "",   // Col H
+            customer.kode || customer.id || "" // Col I (Auto-sync QR Code)
+        ]]);
+
+        return { message: "Update Berhasil", id: idToFind };
+    });
 }

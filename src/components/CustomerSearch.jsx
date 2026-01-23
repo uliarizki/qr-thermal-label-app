@@ -6,6 +6,7 @@ import 'react-loading-skeleton/dist/skeleton.css';
 
 import { Icons } from './Icons';
 import { addHistory } from '../utils/history';
+import BatchGeneratorModal from './BatchGeneratorModal'; // NEW
 import './CustomerSearch.css';
 
 const STORAGE_KEY = 'qr:lastSearchQuery';
@@ -22,7 +23,8 @@ export default function CustomerSearch({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeView, setActiveView] = useState('grid');
   const [filteredCustomers, setFilteredCustomers] = useState([]);
-  const [isSearching, setIsSearching] = useState(false); // New: Track search status
+  const [isSearching, setIsSearching] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false); // NEW
 
   // 1. Handle Initial Query (e.g. from History)
   useEffect(() => {
@@ -174,21 +176,32 @@ export default function CustomerSearch({
         </button>
       </div>
 
-      {/* VIEW TOGGLE CONTROLS */}
-      <div className="view-controls">
+      {/* View Controls & Tools */}
+      <div className="view-controls" style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between' }}>
+        <div>
+          <button
+            className={`view-btn ${activeView === 'grid' ? 'active' : ''}`}
+            onClick={() => toggleView('grid')}
+            title="Tampilan Grid (Kartu)"
+          >
+            <span style={{ fontSize: 16 }}>🔲</span> Grid
+          </button>
+          <button
+            className={`view-btn ${activeView === 'list' ? 'active' : ''}`}
+            onClick={() => toggleView('list')}
+            title="Tampilan List (Daftar)"
+          >
+            <span style={{ fontSize: 16 }}>≣</span> List
+          </button>
+        </div>
+
         <button
-          className={`view-btn ${activeView === 'grid' ? 'active' : ''}`}
-          onClick={() => toggleView('grid')}
-          title="Tampilan Grid (Kartu)"
+          className="view-btn"
+          style={{ background: '#4f46e5', color: 'white', border: 'none' }}
+          onClick={() => setShowBatchModal(true)}
+          title="Batch Generator Tools"
         >
-          <span style={{ fontSize: 16 }}>🔲</span> Grid
-        </button>
-        <button
-          className={`view-btn ${activeView === 'list' ? 'active' : ''}`}
-          onClick={() => toggleView('list')}
-          title="Tampilan List (Daftar)"
-        >
-          <span style={{ fontSize: 16 }}>≣</span> List
+          <span>⚡ Batch Tools</span>
         </button>
       </div>
 
@@ -267,6 +280,14 @@ export default function CustomerSearch({
       >
         <Icons.Scan size={28} />
       </button>
+
+      {showBatchModal && (
+        <BatchGeneratorModal
+          customers={customers}
+          onClose={() => setShowBatchModal(false)}
+          onSync={onSync}
+        />
+      )}
     </div>
   );
 }

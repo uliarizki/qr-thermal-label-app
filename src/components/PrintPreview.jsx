@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
-//import html2pdf from 'html2pdf.js';
+import html2canvas from 'html2canvas'; // Import html2canvas
 import './Components.css';
 import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
+import { shareOrDownload, downloadBlob } from '../utils/shareUtils';
 import { Icons } from './Icons';
 
 const DEFAULT_SIZE = { width: 55, height: 40 }; // sebelumnya 55x40 atau 80x60
@@ -23,24 +24,14 @@ export default function PrintPreview({ data }) {
 
     setIsPrinting('loading');
     try {
-      await generateLabelPdfVector(data, currentSize); // { width, height } dalam mm
+      // Generate blob, function inside now handles return based on arg
+      const { blob, filename } = await generateLabelPdfVector(data, { ...currentSize, returnBlob: true });
 
-      // Success State
+      downloadBlob(blob, filename);
+
       setIsPrinting('success');
-      toast.success('PDF Saved Successfully!', {
-        duration: 3000,
-        icon: '📥',
-        style: {
-          background: '#333',
-          color: '#fff',
-        },
-      });
-
-      // Reset button after 2 seconds
-      setTimeout(() => {
-        setIsPrinting(false);
-      }, 2000);
-
+      toast.success('PDF Saved Successfully!', { duration: 3000, icon: '📥' });
+      setTimeout(() => setIsPrinting(false), 2000);
     } catch (err) {
       console.error('PDF error:', err);
       setIsPrinting(false);
@@ -50,19 +41,10 @@ export default function PrintPreview({ data }) {
 
   const handleShare = async () => {
     try {
+      const toastId = toast.loading('Generating PDF...');
       const { blob, filename } = await generateLabelPdfVector(data, { ...currentSize, returnBlob: true });
-      const file = new File([blob], filename, { type: 'application/pdf' });
 
-      if (navigator.share) {
-        await navigator.share({
-          files: [file],
-          title: 'Label PDF',
-          text: 'Print this label using Rongta App',
-        });
-        toast.success('Shared successfully!');
-      } else {
-        toast.error('Browser tidak support Share');
-      }
+      await shareOrDownload(blob, filename, 'Label PDF', 'Print using Rongta/Thermal Printer App', 'application/pdf');
     } catch (err) {
       console.error('Share error:', err);
       toast.error('Gagal Share PDF');
@@ -80,7 +62,11 @@ export default function PrintPreview({ data }) {
   return (
     <div className="customer-detail">
       <div className="print-controls">
-        <h3>🖨️ Print Settings</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <h3>🖨️ Print Settings</h3>
+          {/* Fallback info for desktop */}
+          {!navigator.share && <span style={{ fontSize: '0.8em', color: '#666' }}>Web Share not supported</span>}
+        </div>
 
         <div className="size-selector">
           <p>Default: 55 × 40 mm (thermal label)</p>
@@ -153,25 +139,25 @@ export default function PrintPreview({ data }) {
             )}
           </button>
 
-          {/* TOMBOL KANAN: DIRECT SHARE (MOBILE ONLY) */}
-          {navigator.share && (
-            <button
-              onClick={handleShare}
-              className="print-btn"
-              style={{
-                flex: 1,
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '12px'
-              }}
-            >
-              <Icons.Share size={20} />
-              <span>Direct Share</span>
-            </button>
-          )}
+          {/* TOMBOL KANAN: DIRECT SHARE */}
+          <button
+            onClick={handleShare}
+            className="print-btn"
+            style={{
+              flex: 1,
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '12px',
+              cursor: 'pointer'
+            }}
+            title="Share or Open PDF"
+          >
+            <Icons.Share size={20} />
+            <span>Direct Share</span>
+          </button>
         </div>
       </div>
 
@@ -201,117 +187,138 @@ export default function PrintPreview({ data }) {
   );
 }
 
-function LabelContent({ data, labelSize }) {
-  const size = labelSize || { width: 55, height: 40 }; // fallback
+import { calculateLabelLayout } from '../utils/labelLayout';
 
-  const minSide = Math.min(size.width, size.height);
-  const qrSize = minSide * 0.6;    // dari 0.45 -> 0.6 (QR membesar)
-  const padding = minSide * 0.01;  // dari 0.02 -> 0.01 (tepi lebih mepet)
-  const gap = minSide * 0.03;      // sedikit kurangi gap antar elemen
+// ... (existing imports, keep them)
+
+// Helper to measure text in browser approx mm
+const measureTextBrowser = (text, fontSizePt, isBold) => {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  // conversion: 1pt approx 1.333px, 1mm approx 3.78px
+  const fontSizePx = fontSizePt * 1.333;
+  context.font = `${isBold ? 'bold ' : ''}${fontSizePx}px Helvetica, Arial, sans-serif`;
+  const widthPx = context.measureText(text).width;
+  return (widthPx / 3.78) * 1.1; // +10% buffer to be safe vs PDF rendering
+};
+
+function LabelContent({ data, labelSize }) {
+  // Calculate layout using the shared engine
+  const layout = calculateLabelLayout(data, measureTextBrowser);
+  const { qr, id, name, city, sales, branch } = layout;
 
   return (
     <div
       style={{
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        justifyContent: 'flex-start',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: `${size.height * 0.2}px`,
+        position: 'relative',
         width: '100%',
         height: '100%',
-        boxSizing: 'border-box',
-        padding: `${padding}mm`,
+        fontFamily: 'Helvetica, Arial, sans-serif',
+        // Visual debug: border? No.
       }}
     >
-      {/* KIRI: QR + ID */}
+      {/* 1. QR Code */}
       <div
         style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: `${gap}mm`,
-          flexShrink: 0,
-          marginRight: `${gap}mm`,
+          position: 'absolute',
+          left: `${qr.x}mm`,
+          top: `${qr.y}mm`,
+          width: `${qr.size}mm`,
+          height: `${qr.size}mm`,
         }}
       >
-        <div
-          style={{
-            width: `${qrSize}mm`,
-            height: `${qrSize}mm`,
-          }}
-        >
-          <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
-              data.raw || JSON.stringify(data)
-            )}`}
-            alt="QR"
-            style={{
-              width: '100%',
-              height: '100%',
-              imageRendering: 'pixelated',
-            }}
-          />
-        </div>
-        <div
-          style={{
-            fontSize: `${size.height * 0.32}px`,
-            fontWeight: 'bold',
-            textAlign: 'center',
-            lineHeight: 1.1,
-          }}
-        >
-          {data.it}
-        </div>
+        <img
+          src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
+            data.raw || JSON.stringify(data)
+          )}`}
+          alt="QR"
+          style={{ width: '100%', height: '100%', imageRendering: 'pixelated' }}
+        />
       </div>
 
-      {/* KANAN: TEKS */}
+      {/* 2. ID */}
       <div
         style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: `${size.height * 0.03}mm`,
-          minWidth: 0,
+          position: 'absolute',
+          left: `${id.x}mm`,
+          top: `${id.y}mm`,
+          fontSize: `${id.fontSize}pt`,
+          fontWeight: id.isBold ? 'bold' : 'normal',
+          lineHeight: 1,
+          whiteSpace: 'nowrap',
         }}
       >
-        <div
-          style={{
-            fontSize: `${size.height * 0.31}px`,
-            fontWeight: 'bold',
-            lineHeight: 1.1,
-            whiteSpace: 'normal',
-            wordWrap: 'break-word',
-            maxHeight: '2.2em',
-            overflow: 'hidden',
-          }}
-        >
-          {data.nt}
-        </div>
-        <div
-          style={{
-            fontSize: `${size.height * 0.25}px`,
-            fontWeight: 700,
-          }}>
-          {data.at}
-        </div>
-        <div
-          style={{
-            fontSize: `${size.height * 0.25}px`,
-            fontWeight: 700,
-          }}>
-          {data.pt}
-        </div>
-        <div
-          style={{
-            marginTop: 'auto',
-            fontSize: `${size.height * 0.28}px`,
-            fontWeight: 700,
-          }}
-        >
-          {data.ws}
-        </div>
+        {id.text}
       </div>
+
+      {/* 3. Name (Lines) */}
+      {name.lines.map((line, index) => (
+        <div
+          key={index}
+          style={{
+            position: 'absolute',
+            left: `${name.x}mm`,
+            // Fix: Combine baseline adjustment AND line spacing offset
+            top: `${(name.y + (index * name.lineHeightMm)) - (name.fontSize * 0.28)}mm`,
+            fontSize: `${name.fontSize}pt`,
+            fontWeight: name.isBold ? 'bold' : 'normal',
+            whiteSpace: 'nowrap',
+            lineHeight: 1,
+          }}
+        >
+          {line}
+        </div>
+      ))}
+
+      {/* 4. City (Lines) */}
+      {city.lines.map((line, index) => (
+        <div
+          key={index}
+          style={{
+            position: 'absolute',
+            left: `${city.x}mm`,
+            top: `${(city.y + (index * city.lineHeightMm)) - (city.fontSize * 0.28)}mm`,
+            fontSize: `${city.fontSize}pt`,
+            fontWeight: city.isBold ? 'bold' : 'normal',
+            lineHeight: 1,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {line}
+        </div>
+      ))}
+
+      {/* 5. Sales */}
+      <div
+        style={{
+          position: 'absolute',
+          left: `${sales.x}mm`,
+          top: `${sales.y - (sales.fontSize * 0.28)}mm`,
+          fontSize: `${sales.fontSize}pt`,
+          fontWeight: sales.isBold ? 'bold' : 'normal',
+          lineHeight: 1,
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {sales.text}
+      </div>
+
+      {/* 6. Branch */}
+      {branch.text && (
+        <div
+          style={{
+            position: 'absolute',
+            left: `${branch.x}mm`,
+            top: `${branch.y - (branch.fontSize * 0.28)}mm`,
+            fontSize: `${branch.fontSize}pt`,
+            fontWeight: branch.isBold ? 'bold' : 'normal',
+            lineHeight: 1,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {branch.text}
+        </div>
+      )}
     </div>
   );
 }

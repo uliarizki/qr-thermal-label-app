@@ -202,10 +202,8 @@ function AppContent() {
     // 1. Sync Immediately
     handleSync();
 
-
-
-    // Fix: Construct a standard customer object for immediate display
-    // The previous code used QR keys (it, nt) which caused the modal to show empty data
+    // 2. Open Detail Modal (View Only)
+    // Construct a standard customer object for immediate display
     const displayCustomer = {
       id: newCustomer.id || '',
       nama: newCustomer.nama,

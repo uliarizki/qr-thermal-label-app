@@ -15,62 +15,32 @@
     border-radius: 16px;
     overflow: hidden;
     /* DEEP BLUE & SILVER THEME (Adapted from Reference) */
-    background: linear-gradient(135deg, #001233 0%, #002855 50%, #004080 100%);
+    background: url('/assets/card-bg-blue.jpg') no-repeat center center;
+    background-size: cover;
     color: white;
     font-family: 'Inter', sans-serif;
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    /* justify-content: space-between; REMOVED to allow natural flow or use gap */
     border: 2px solid #D4AF37;
+    padding-bottom: 20px;
+    /* Add padding at bottom since footer is gone */
 }
 
-/* Abstract Wave/Curve Overlay */
+/* Abstract Wave/Curve Overlay - DISABLED as we use image now */
 .card-overlay {
+    /* Reactivated: Minimal dark overlay to ensure text contrast against busy patterns */
+    display: block;
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background:
-        radial-gradient(circle at 100% 0%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 0% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 40%),
-        radial-gradient(ellipse at 50% -20%, rgba(0, 100, 255, 0.2) 0%, transparent 60%);
-    /* Subtle noise/texture pattern could be added here if needed, but keeping it clean grad */
+    /* Gradient from Right (Darker, where text is) to Left (Lighter, where QR is) */
+    background: linear-gradient(to left, rgba(0, 5, 20, 0.7) 0%, rgba(0, 10, 30, 0.4) 50%, rgba(0, 0, 0, 0.1) 100%);
     z-index: 0;
     pointer-events: none;
-    overflow: hidden;
-}
-
-/* Decorative Lines - REMOVED per feedback for cleaner look */
-/* Replaced with very subtle ambient light flow */
-.card-overlay::before,
-.card-overlay::after {
-    content: "";
-    position: absolute;
-    pointer-events: none;
-    opacity: 0.4;
-    border-radius: 50%;
-}
-
-/* Soft Light from Top-Right (Blue-ish White) */
-.card-overlay::before {
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-    top: -50%;
-    right: -20%;
-    width: 80%;
-    height: 80%;
-    filter: blur(40px);
-}
-
-/* Subtle Warm Glow from Bottom-Left (Faint Gold) */
-.card-overlay::after {
-    background: radial-gradient(circle, rgba(212, 175, 55, 0.08) 0%, transparent 60%);
-    bottom: -40%;
-    left: -20%;
-    width: 90%;
-    height: 90%;
-    filter: blur(50px);
 }
 
 /* Header */
@@ -80,7 +50,8 @@
     align-items: center;
     padding: 15px 25px;
     z-index: 1;
-    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    /* Removed heavy border, kept subtle if needed or just remove */
+    /* border-bottom: 1px solid rgba(212, 175, 55, 0.2); */
 }
 
 .brand-logo {
@@ -93,89 +64,107 @@
     width: 45px;
     height: 45px;
     object-fit: contain;
-    /* Mix blend mode to remove white background from logo if needed */
     mix-blend-mode: multiply;
     filter: contrast(1.2);
     background: white;
-    /* Fallback frame */
     border-radius: 50%;
     padding: 2px;
 }
 
 .brand-name {
     font-family: var(--font-brand);
-    /* THE NEW FONT */
     font-weight: 400;
     font-size: 1.6rem;
-    color: #D4AF37;
-    /* GOLD TEXT */
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    color: #FFD700;
+    /* Brighter Gold */
+    /* Enhanced text shadow for brand */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
     margin-top: 5px;
-    /* Adjust alignment for script font */
 }
 
 .card-type {
     font-size: 0.65rem;
     font-weight: 700;
-    background: linear-gradient(135deg, #F0F0F0 0%, #C0C0C0 100%);
-    color: #001233;
-    padding: 5px 10px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #002855;
+    /* Match theme blue */
+    padding: 6px 12px;
     border-radius: 20px;
-    letter-spacing: 1px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    border: 1px solid #D4AF37;
 }
 
 /* Body */
 .card-body {
     display: flex;
     flex: 1;
-    padding: 0 25px;
+    padding: 10px 30px 20px 30px;
+    /* Adjusted padding */
     align-items: center;
+    /* Center vertically */
     z-index: 1;
     gap: 20px;
 }
 
 .info-section {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    /* Optional: very subtle highlight behind text if needed, currently relying on gradient overlay */
+    text-align: left;
+    /* REVERTED TO LEFT */
 }
 
 .customer-name-large {
-    margin: 0 0 15px 0;
+    margin: 0 0 20px 0;
     font-size: 1.6rem;
     font-weight: 800;
     text-transform: uppercase;
     color: #fff;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    /* Stronger drop shadow for maximum readability */
+    text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 0, 0, 0.8);
     line-height: 1.1;
+    letter-spacing: 0.5px;
 }
 
 .info-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    /* Increased gap for better breathing */
+    justify-items: start;
+    /* Align items to start/left */
 }
 
 .info-item {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
+    /* Align labels and values to left */
 }
 
 .info-item label {
-    font-size: 0.55rem;
-    color: #D4AF37;
-    letter-spacing: 1px;
-    margin-bottom: 2px;
+    font-size: 0.6rem;
+    color: #FCD34D;
+    /* Lighter Amber/Gold */
+    letter-spacing: 1.5px;
+    margin-bottom: 4px;
     text-transform: uppercase;
-    opacity: 0.9;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 .info-item span {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #f0f0f0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #ffffff;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    /* Enhanced text shadow */
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
 }
 
 /* QR Section */
@@ -183,36 +172,26 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .qr-box {
     background: white;
-    padding: 6px;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-    border: 2px solid #D4AF37;
+    padding: 8px;
+    border-radius: 12px;
+    /* Soft shadow to lift it off the BG */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+    border: 3px solid #D4AF37;
+    /* Stronger gold border */
 }
 
 .scan-me {
-    font-size: 0.6rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    color: #D4AF37;
-    opacity: 0.9;
-}
-
-/* Footer */
-.card-footer {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 25px;
-    font-size: 0.6rem;
-    opacity: 0.7;
-    z-index: 1;
-    background: rgba(0, 0, 0, 0.4);
-    color: #ccc;
-    font-weight: 300;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: #FCD34D;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    opacity: 1;
 }
 
 /* === RESPONSIVE SCALING FOR MOBILE === */
@@ -220,7 +199,6 @@
     .digital-card {
         transform: scale(0.7);
         transform-origin: top center;
-        /* Reduce vertical space occupied by the scaled card */
         margin-bottom: -90px;
     }
 }
@@ -241,18 +219,18 @@
     width: 200%;
     height: 200%;
     /* Diagonal repeating SVG: Star + BINTANG MAS */
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Ctext x='50%25' y='50%25' font-size='20' fill='rgba(255, 215, 0, 0.15)' font-family='Brush Script MT, cursive' text-anchor='middle' transform='rotate(-45 75 75)'%3EBintang Mas%3C/text%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Ctext x='50%25' y='50%25' font-size='20' fill='rgba(255, 215, 0, 0.1)' font-family='Brush Script MT, cursive' text-anchor='middle' transform='rotate(-45 75 75)'%3EBintang Mas%3C/text%3E%3C/svg%3E");
     background-repeat: repeat;
     transform: rotate(15deg);
     background-position: -100px 0;
     pointer-events: none;
     z-index: 1;
+    opacity: 0.4;
+    /* Further reduced opacity */
 }
 
 /* Ensure content stays above watermark */
-.card-body,
-.card-header,
-.card-footer {
+.card-header {
     position: relative;
     z-index: 5;
 }

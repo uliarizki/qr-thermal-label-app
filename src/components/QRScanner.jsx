@@ -202,31 +202,7 @@ export default function QRScanner({ onScan, onClose }) {
     <div className="page-card">
       <div className="scanner-container">
 
-        {/* Back Button (If onClose provided) */}
-        {onClose && (
-          <button
-            onClick={onClose}
-            style={{
-              position: 'absolute',
-              top: 10,
-              left: 10,
-              zIndex: 20,
-              background: 'rgba(0,0,0,0.6)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '50%',
-              width: 40,
-              height: 40,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 20
-            }}
-          >
-            🔙
-          </button>
-        )}
+
 
         {/* Scanner Box with Click-to-Resume */}
         <div className="scanner-box" onClick={handleOverlayClick} style={{ cursor: !isScanning ? 'pointer' : 'default' }}>
@@ -273,15 +249,7 @@ export default function QRScanner({ onScan, onClose }) {
           </div>
         )}
 
-        <button
-          className={`toggle-btn ${isScanning ? 'scanning' : 'paused'}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsScanning(!isScanning);
-          }}
-        >
-          {isScanning ? '⏸️ Pause Scanner' : '▶️ Resume Scanner (Auto-off 60s)'}
-        </button>
+
       </div>
     </div>
   )

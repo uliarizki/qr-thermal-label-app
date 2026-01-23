@@ -26,6 +26,12 @@ export default function GuestBook() {
         return { nama: '', kota: '', hp: '', cabang: savedBranch || 'BT SMG' };
     });
 
+    // Date Filter State (Default Today)
+    const [filterDate, setFilterDate] = useState(() => {
+        const now = new Date();
+        return now.toISOString().split('T')[0]; // YYYY-MM-DD
+    });
+
     // Load attendance when switching to list
     useEffect(() => {
         if (activeTab === 'list') {
@@ -98,14 +104,14 @@ export default function GuestBook() {
     const performCheckIn = async (customer) => {
         const toastId = toast.loading(`Checking In: ${customer.nama}...`);
         try {
-            // Ensure Cabang is present, if not use Default from Manual Form logic
-            if (!customer.cabang) {
-                customer.cabang = manualForm.cabang;
-            }
+            // OVERWRITE: Always record the EVENT LOCATION (manualForm.cabang)
+            // OLD Logic: Only used if customer.cabang was missing.
+            // NEW Logic: We want 'Daftar Hadir' to show WHERE the event is, not where the user is from.
+            customer.cabang = manualForm.cabang;
 
             const res = await checkInCustomer(customer);
             if (res.success) {
-                toast.success(`Hadir: ${customer.nama} (${customer.kota})`, { id: toastId, duration: 4000 });
+                toast.success(`Hadir: ${customer.nama} (${customer.kota}) di ${customer.cabang}`, { id: toastId, duration: 4000 });
                 if (activeTab === 'list') fetchAttendance(); // Refresh list if visible
             } else {
                 toast.error(`Gagal: ${res.error}`, { id: toastId, duration: 5000 });
@@ -235,30 +241,7 @@ export default function GuestBook() {
                                 </button>
                             </div>
 
-                            {/* BRANCH CONTEXT SELECTOR (Always Visible) */}
-                            <div className="form-group" style={{ marginBottom: 15 }}>
-                                <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 600 }}>Lokasi Acara (Cabang)</label>
-                                <div style={{ display: 'flex', gap: 10 }}>
-                                    {['BT SMG', 'BT JKT', 'BT SBY'].map(br => (
-                                        <button
-                                            key={br}
-                                            type="button"
-                                            onClick={() => setBranch(br)}
-                                            style={{
-                                                flex: 1, padding: '10px',
-                                                border: manualForm.cabang === br ? '2px solid #D4AF37' : '1px solid #ddd',
-                                                background: manualForm.cabang === br ? '#fffdf5' : 'white',
-                                                color: manualForm.cabang === br ? '#D4AF37' : '#666',
-                                                borderRadius: 6, cursor: 'pointer', fontWeight: manualForm.cabang === br ? 'bold' : 'normal'
-                                            }}
-                                        >
-                                            {br}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* SEARCH BAR */}
+                            {/* SEARCH BAR (Moved Uppermost) */}
                             <div className="form-group" style={{ marginBottom: 20 }}>
                                 <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 600 }}>Cari Member (ID / Nama)</label>
                                 <input
@@ -279,7 +262,28 @@ export default function GuestBook() {
                                                     style={{ padding: '10px', borderBottom: '1px solid #eee', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                                                 >
                                                     <div>
-                                                        <div style={{ fontWeight: 'bold' }}>{cust.nama}</div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                            <div style={{ fontWeight: 'bold' }}>{cust.nama}</div>
+                                                            {cust.cabang && (
+                                                                <span style={{
+                                                                    fontSize: 10,
+                                                                    padding: '2px 6px',
+                                                                    borderRadius: 4,
+                                                                    border: cust.cabang.includes('SBY') ? '1px solid #fde047' :
+                                                                        cust.cabang.includes('SMG') ? '1px solid #86efac' :
+                                                                            cust.cabang.includes('JKT') ? '1px solid #93c5fd' : '1px solid #eee',
+                                                                    background: cust.cabang.includes('SBY') ? '#fefce8' :
+                                                                        cust.cabang.includes('SMG') ? '#f0fdf4' :
+                                                                            cust.cabang.includes('JKT') ? '#eff6ff' : '#f3f4f6',
+                                                                    color: cust.cabang.includes('SBY') ? '#854d0e' :
+                                                                        cust.cabang.includes('SMG') ? '#166534' :
+                                                                            cust.cabang.includes('JKT') ? '#1e40af' : '#666',
+                                                                    fontWeight: 'bold'
+                                                                }}>
+                                                                    {cust.cabang}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <div style={{ fontSize: 12, color: '#666' }}>{cust.kota} | {cust.id}</div>
                                                     </div>
                                                     <button style={{ background: '#e6fffa', color: '#047857', border: 'none', padding: '4px 8px', borderRadius: 4, cursor: 'pointer' }}>Pilih</button>
@@ -297,6 +301,29 @@ export default function GuestBook() {
                             {/* NEW USER FORM */}
                             <h4 style={{ marginTop: 0, marginBottom: 15, color: '#d97706' }}>📝 Formulir Tamu Baru</h4>
                             <form onSubmit={handleManualSubmit}>
+                                {/* BRANCH CONTEXT SELECTOR (Moved Here) */}
+                                <div className="form-group" style={{ marginBottom: 15 }}>
+                                    <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 600 }}>Lokasi Acara (Cabang)</label>
+                                    <div style={{ display: 'flex', gap: 10 }}>
+                                        {['BT SMG', 'BT JKT', 'BT SBY'].map(br => (
+                                            <button
+                                                key={br}
+                                                type="button"
+                                                onClick={() => setBranch(br)}
+                                                style={{
+                                                    flex: 1, padding: '10px',
+                                                    border: manualForm.cabang === br ? '2px solid #D4AF37' : '1px solid #ddd',
+                                                    background: manualForm.cabang === br ? '#fffdf5' : 'white',
+                                                    color: manualForm.cabang === br ? '#D4AF37' : '#666',
+                                                    borderRadius: 6, cursor: 'pointer', fontWeight: manualForm.cabang === br ? 'bold' : 'normal'
+                                                }}
+                                            >
+                                                {br}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 <div className="form-group" style={{ marginBottom: 15 }}>
                                     <label style={{ display: 'block', marginBottom: 5, fontSize: 13, fontWeight: 600 }}>Nama Lengkap</label>
                                     <input
@@ -346,12 +373,32 @@ export default function GuestBook() {
 
             {activeTab === 'list' && (
                 <div className="attendance-list">
-                    <h3 style={{ marginTop: 0 }}>Daftar Hadir Hari Ini</h3>
-                    <button onClick={fetchAttendance} style={{ marginBottom: 10, padding: '5px 10px', cursor: 'pointer' }}>🔄 Refresh</button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                        <h3 style={{ margin: 0 }}>
+                            Daftar Hadir: {new Date(filterDate).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                        </h3>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 15, alignItems: 'center' }}>
+                        <input
+                            type="date"
+                            value={filterDate}
+                            onChange={(e) => setFilterDate(e.target.value)}
+                            style={{
+                                padding: '8px 12px',
+                                borderRadius: 6,
+                                border: '1px solid #ccc',
+                                fontSize: 14,
+                                fontFamily: 'inherit'
+                            }}
+                        />
+                        <button onClick={fetchAttendance} style={{ padding: '8px 12px', cursor: 'pointer', borderRadius: 6, border: '1px solid #ddd', background: 'white' }}>
+                            🔄 Refresh Data
+                        </button>
+                    </div>
+
                     {loading ? (
                         <p>Loading data...</p>
-                    ) : attendees.length === 0 ? (
-                        <p style={{ color: '#999', fontStyle: 'italic' }}>Belum ada tamu yang check-in hari ini.</p>
                     ) : (
                         <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
@@ -359,30 +406,49 @@ export default function GuestBook() {
                                     <tr style={{ background: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
                                         <th style={{ padding: 10, textAlign: 'left' }}>Jam</th>
                                         <th style={{ padding: 10, textAlign: 'left' }}>Nama</th>
-                                        <th style={{ padding: 10, textAlign: 'left' }}>Cabang</th>
+                                        <th style={{ padding: 10, textAlign: 'left' }}>Lokasi Acara</th>
                                         <th style={{ padding: 10, textAlign: 'left' }}>Kota</th>
                                         <th style={{ padding: 10, textAlign: 'center' }}>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {attendees.map((guest, idx) => (
-                                        <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                                            <td style={{ padding: 10 }}>{new Date(guest.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
-                                            <td style={{ padding: 10, fontWeight: 500 }}>{guest.nama}</td>
-                                            <td style={{ padding: 10 }}>
-                                                <span style={{
-                                                    background: '#f3f4f6', padding: '2px 6px', borderRadius: 4,
-                                                    fontSize: 11, border: '1px solid #ddd', color: '#444', fontWeight: 'bold'
-                                                }}>
-                                                    {guest.cabang || '-'}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: 10, color: '#666' }}>{guest.kota}</td>
-                                            <td style={{ padding: 10, textAlign: 'center' }}>
-                                                <span style={{ background: '#e6fffa', color: '#047857', padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 'bold' }}>Hadir</span>
+                                    {attendees.filter(guest => {
+                                        if (!guest.timestamp) return false;
+                                        // Convert timestamp to YYYY-MM-DD
+                                        const guestDate = new Date(guest.timestamp).toISOString().split('T')[0];
+                                        return guestDate === filterDate;
+                                    }).length === 0 ? (
+                                        <tr>
+                                            <td colSpan="5" style={{ padding: 20, textAlign: 'center', color: '#999', fontStyle: 'italic' }}>
+                                                Tidak ada data untuk tanggal ini.
                                             </td>
                                         </tr>
-                                    ))}
+                                    ) : (
+                                        attendees
+                                            .filter(guest => {
+                                                if (!guest.timestamp) return false;
+                                                const guestDate = new Date(guest.timestamp).toISOString().split('T')[0];
+                                                return guestDate === filterDate;
+                                            })
+                                            .map((guest, idx) => (
+                                                <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                                                    <td style={{ padding: 10 }}>{new Date(guest.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                                                    <td style={{ padding: 10, fontWeight: 500 }}>{guest.nama}</td>
+                                                    <td style={{ padding: 10 }}>
+                                                        <span style={{
+                                                            background: '#f3f4f6', padding: '2px 6px', borderRadius: 4,
+                                                            fontSize: 11, border: '1px solid #ddd', color: '#444', fontWeight: 'bold'
+                                                        }}>
+                                                            {guest.cabang || '-'}
+                                                        </span>
+                                                    </td>
+                                                    <td style={{ padding: 10, color: '#666' }}>{guest.kota}</td>
+                                                    <td style={{ padding: 10, textAlign: 'center' }}>
+                                                        <span style={{ background: '#e6fffa', color: '#047857', padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 'bold' }}>Hadir</span>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>

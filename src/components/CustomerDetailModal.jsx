@@ -1,24 +1,35 @@
+// Imports
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import html2canvas from 'html2canvas';
 
 import PrintPreview from './PrintPreview';
 import DigitalCard from './DigitalCard';
+import CustomerForm from './CustomerForm';
 import { Icons } from './Icons';
 import { addHistory } from '../utils/history';
+import { editCustomer } from '../utils/googleSheets';
+import { shareOrDownload, downloadBlob } from '../utils/shareUtils';
 
 export default function CustomerDetailModal({ customer, onClose }) {
     const [activeTab, setActiveTab] = useState('thermal'); // 'thermal' | 'digital'
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
     const digitalCardRef = useRef(null);
+
+    // Reset Edit Mode when customer changes
+    useEffect(() => {
+        setIsEditing(false);
+    }, [customer]);
 
     // Add history on mount
     useEffect(() => {
         if (customer) {
-            // Only add history if not opened from history list
             if (!customer.skipHistoryLog) {
                 addHistory('SEARCH_SELECT', {
-                    query: customer.id, // Use ID as query ref
+                    query: customer.id,
                     customerId: customer.id,
                     customerName: customer.nama,
                     kota: customer.kota,
@@ -28,22 +39,18 @@ export default function CustomerDetailModal({ customer, onClose }) {
                 });
             }
 
-            // Update URL hash for back button support
-            const url = new URL(window.location);
-            url.hash = 'customer-detail';
-            window.history.pushState({ tab: 'modal', modal: true }, '', url);
+            if (!window.history.state?.modal) {
+                const currentTab = window.history.state?.tab || 'search';
+                const url = new URL(window.location);
+                url.hash = 'customer-detail';
+                window.history.pushState({ tab: currentTab, modal: true }, '', url);
+            }
         }
-
-        // Cleanup history state when unmounting/closing
-        return () => {
-            // Optional: Could revert URL here if needed, but App.jsx handles popstate usually
-        };
     }, [customer]);
 
-    // Handle Back Button closure
+    // Handle Back Button
     useEffect(() => {
         const handlePopState = (event) => {
-            // If back button pressed and we lose the modal state, close it
             if (!event.state?.modal) {
                 onClose();
             }
@@ -53,42 +60,57 @@ export default function CustomerDetailModal({ customer, onClose }) {
     }, [onClose]);
 
     const handleManualClose = () => {
-        window.history.back(); // This triggers popstate -> onClose
+        onClose();
+        if (window.history.state?.modal) {
+            window.history.back();
+        }
+    };
+
+    // Helper to generate blob from card
+    const generateCardBlob = async () => {
+        if (!digitalCardRef.current) return null;
+
+        // Wait for fonts/images if needed (though usually loaded by now)
+        const elementToCapture = digitalCardRef.current;
+
+        const canvas = await html2canvas(elementToCapture, {
+            backgroundColor: null,
+            scale: 3,
+            width: 500,
+            height: 300,
+            windowWidth: 1200,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            onClone: (clonedDoc) => {
+                const card = clonedDoc.querySelector('.digital-card');
+                if (card) {
+                    card.style.transform = 'none';
+                    card.style.margin = '0';
+                    card.style.boxShadow = 'none';
+                    card.style.width = '500px';
+                    card.style.height = '300px';
+                }
+            }
+        });
+
+        return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    };
+
+    const getFilename = () => {
+        const cleanName = (customer.nama || 'CUSTOMER').replace(/[\\/:*?"<>|]/g, ' ').trim();
+        const cleanCity = (customer.kota || 'CITY').replace(/[\\/:*?"<>|]/g, ' ').trim();
+        return `${cleanName}_${cleanCity}_${customer.id}.png`;
     };
 
     const handleDownloadImage = async () => {
-        if (!digitalCardRef.current) return;
-
         try {
             setIsDownloading(true);
-            await new Promise(r => setTimeout(r, 500)); // Wait for render
+            const blob = await generateCardBlob();
+            if (!blob) throw new Error("Failed to generate blob");
 
-            const canvas = await html2canvas(digitalCardRef.current, {
-                backgroundColor: null,
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                logging: false,
-                onClone: (clonedDoc) => {
-                    // Reset transform to ensure high-res capture even on mobile
-                    const card = clonedDoc.querySelector('.digital-card');
-                    if (card) {
-                        card.style.transform = 'scale(1)';
-                        card.style.marginBottom = '0';
-                    }
-                }
-            });
-
-            const navUrl = canvas.toDataURL('image/png');
-            const cleanName = (customer.nama || 'CUSTOMER').replace(/[\\/:*?"<>|]/g, '').trim();
-            const cleanCity = (customer.kota || 'CITY').replace(/[\\/:*?"<>|]/g, '').trim();
-            const filename = `${cleanName}_${cleanCity}_${customer.id}.png`;
-
-            const link = document.createElement('a');
-            link.download = filename;
-            link.href = navUrl;
-            link.click();
-
+            const filename = getFilename();
+            downloadBlob(blob, filename);
             toast.success('Gambar berhasil disimpan!');
         } catch (err) {
             console.error(err);
@@ -99,61 +121,44 @@ export default function CustomerDetailModal({ customer, onClose }) {
     };
 
     const handleShareImage = async () => {
-        if (!digitalCardRef.current) return;
-
         try {
             setIsDownloading(true);
-            await new Promise(r => setTimeout(r, 500));
+            const blob = await generateCardBlob();
+            if (!blob) throw new Error("Failed to generate blob");
 
-            const canvas = await html2canvas(digitalCardRef.current, {
-                backgroundColor: null,
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                logging: false,
-                onClone: (clonedDoc) => {
-                    // Reset transform to ensure high-res capture even on mobile
-                    const card = clonedDoc.querySelector('.digital-card');
-                    if (card) {
-                        card.style.transform = 'scale(1)';
-                        card.style.marginBottom = '0';
-                    }
-                }
-            });
-
-            canvas.toBlob(async (blob) => {
-                if (!blob) {
-                    toast.error('Gagal membuat gambar');
-                    return;
-                }
-
-                const cleanName = (customer.nama || 'CUSTOMER').replace(/[\\/:*?"<>|]/g, '').trim();
-                const cleanCity = (customer.kota || 'CITY').replace(/[\\/:*?"<>|]/g, '').trim();
-                const filename = `${cleanName}_${cleanCity}_${customer.id}.png`;
-
-                const file = new File([blob], filename, { type: 'image/png' });
-
-                if (navigator.share) {
-                    try {
-                        await navigator.share({
-                            files: [file],
-                            title: 'Digital ID Card',
-                            text: `Digital ID for ${customer.nama}`,
-                        });
-                        toast.success('Shared successfully!');
-                    } catch (error) {
-                        console.error('Share failed:', error);
-                    }
-                } else {
-                    toast.error('Browser tidak support Share Image');
-                }
-                setIsDownloading(false);
-            }, 'image/png');
-
+            const filename = getFilename();
+            await shareOrDownload(
+                blob,
+                filename,
+                'Digital ID Card',
+                `Digital ID for ${customer.nama}`,
+                'image/png'
+            );
         } catch (err) {
             console.error(err);
-            toast.error('Gagal generate share image');
+            toast.error('Error saat generate gambar');
+        } finally {
             setIsDownloading(false);
+        }
+    };
+
+    const handleEditSubmit = async (updatedData) => {
+        setIsSaving(true);
+        const toastId = toast.loading('Menyimpan perubahan...');
+        try {
+            const payload = { ...updatedData, id: customer.id };
+            const res = await editCustomer(payload);
+            if (res.success) {
+                toast.success('Data berhasil diperbarui!', { id: toastId });
+                setIsEditing(false);
+                handleManualClose();
+            } else {
+                toast.error('Gagal update: ' + res.error, { id: toastId });
+            }
+        } catch (e) {
+            toast.error('Error saving data', { id: toastId });
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -163,91 +168,120 @@ export default function CustomerDetailModal({ customer, onClose }) {
         <div className="modal-overlay" onClick={handleManualClose}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h3 className="modal-title">Detail Customer</h3>
-                    <button className="close-btn" onClick={handleManualClose} style={{ display: 'flex', alignItems: 'center' }}>
-                        <Icons.Close size={24} />
-                    </button>
-                </div>
-
-                <div className="modal-tabs">
-                    <button
-                        className={`tab-btn ${activeTab === 'thermal' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('thermal')}
-                        style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}
-                    >
-                        <Icons.Scan size={16} />
-                        <span>Thermal Print</span>
-                    </button>
-                    <button
-                        className={`tab-btn ${activeTab === 'digital' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('digital')}
-                        style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}
-                    >
-                        <Icons.User size={16} />
-                        <span>Digital ID</span>
-                    </button>
-                </div>
-
-                <div className="modal-body">
-                    {activeTab === 'thermal' ? (
-                        <>
-                            <div className="customer-detail" style={{ width: '100%' }}>
-                                <p><strong>ID:</strong> {customer.id}</p>
-                                <p><strong>Nama:</strong> {customer.nama}</p>
-                                <p><strong>Kota:</strong> {customer.kota}</p>
-                                <p><strong>Cabang:</strong> {customer.cabang || customer.sales || customer.pabrik}</p>
-                                <p><strong>Telp:</strong> {customer.telp}</p>
-                            </div>
-                            <PrintPreview
-                                data={{
-                                    it: customer.id,
-                                    nt: customer.nama,
-                                    at: customer.kota,
-                                    pt: customer.sales || customer.pabrik,
-                                    ws: customer.cabang,
-                                    raw: customer.kode,
+                    <h3 className="modal-title">
+                        {isEditing ? 'Edit Customer' : 'Detail Customer'}
+                    </h3>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        {!isEditing && customer.id && (
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                style={{
+                                    background: 'none', border: 'none', cursor: 'pointer',
+                                    color: '#f59e0b', display: 'flex', alignItems: 'center'
                                 }}
-                            />
-                        </>
-                    ) : (
-                        <>
-                            <DigitalCard
-                                ref={digitalCardRef}
-                                customer={customer}
-                            />
-
-                            <div style={{ display: 'flex', gap: 10, marginTop: 15 }}>
-                                <button
-                                    className="download-btn"
-                                    onClick={handleDownloadImage}
-                                    disabled={isDownloading}
-                                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                                    title="Simpan ke Galeri"
-                                >
-                                    <Icons.Download size={18} />
-                                    <span>Save Image</span>
-                                </button>
-
-                                {navigator.share && (
-                                    <button
-                                        className="download-btn"
-                                        onClick={handleShareImage}
-                                        disabled={isDownloading}
-                                        style={{
-                                            flex: 1,
-                                            background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-                                        }}
-                                        title="Share ke WhatsApp dll"
-                                    >
-                                        <Icons.Share size={18} />
-                                        <span>Share</span>
-                                    </button>
-                                )}
-                            </div>
-                        </>
-                    )}
+                                title="Edit Customer"
+                            >
+                                <Icons.Edit size={20} />
+                            </button>
+                        )}
+                        <button className="close-btn" onClick={isEditing ? () => setIsEditing(false) : handleManualClose}>
+                            <Icons.Close size={24} />
+                        </button>
+                    </div>
                 </div>
+
+                {isEditing ? (
+                    <div style={{ padding: 20 }}>
+                        <div style={{ marginBottom: 15, padding: 10, background: '#fffbeb', borderRadius: 8, fontSize: 13, color: '#92400e', border: '1px solid #fcd34d' }}>
+                            ⚠️ Perubahan akan langsung disimpan ke database utama. ID tidak dapat diubah.
+                        </div>
+                        <CustomerForm
+                            initialValues={customer}
+                            onSubmit={handleEditSubmit}
+                            isLoading={isSaving}
+                            submitLabel="Simpan Perubahan"
+                            isEditMode={true}
+                        />
+                    </div>
+                ) : (
+                    <>
+                        <div className="modal-tabs">
+                            <button
+                                className={`tab-btn ${activeTab === 'thermal' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('thermal')}
+                                style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}
+                            >
+                                <Icons.Scan size={16} />
+                                <span>Thermal Print</span>
+                            </button>
+                            <button
+                                className={`tab-btn ${activeTab === 'digital' ? 'active' : ''}`}
+                                onClick={() => setActiveTab('digital')}
+                                style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}
+                            >
+                                <Icons.User size={16} />
+                                <span>Digital ID</span>
+                            </button>
+                        </div>
+
+                        <div className="modal-body">
+                            {activeTab === 'thermal' ? (
+                                <>
+                                    <div className="customer-detail" style={{ width: '100%' }}>
+                                        <p><strong>ID:</strong> {customer.id}</p>
+                                        <p><strong>Nama:</strong> {customer.nama}</p>
+                                        <p><strong>Kota:</strong> {customer.kota}</p>
+                                        <p><strong>Cabang:</strong> {customer.cabang || customer.sales || customer.pabrik}</p>
+                                        <p><strong>Telp:</strong> {customer.telp}</p>
+                                    </div>
+                                    <PrintPreview
+                                        data={{
+                                            it: customer.id,
+                                            nt: customer.nama,
+                                            at: customer.kota,
+                                            pt: customer.sales || customer.pabrik,
+                                            ws: customer.cabang,
+                                            raw: customer.kode,
+                                        }}
+                                    />
+                                </>
+                            ) : (
+                                <>
+                                    <DigitalCard
+                                        ref={digitalCardRef}
+                                        customer={customer}
+                                    />
+                                    <div style={{ display: 'flex', gap: 10, marginTop: 15 }}>
+                                        <button
+                                            className="download-btn"
+                                            onClick={handleDownloadImage}
+                                            disabled={isDownloading}
+                                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                                        >
+                                            <Icons.Download size={18} />
+                                            <span>Save Image</span>
+                                        </button>
+                                        {navigator.share && (
+                                            <button
+                                                className="download-btn"
+                                                onClick={handleShareImage}
+                                                disabled={isDownloading}
+                                                style={{
+                                                    flex: 1,
+                                                    background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+                                                }}
+                                            >
+                                                <Icons.Share size={18} />
+                                                <span>Share</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

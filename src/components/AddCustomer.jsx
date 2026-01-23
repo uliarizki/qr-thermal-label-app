@@ -3,74 +3,22 @@ import { toast } from 'react-hot-toast';
 import { addCustomer } from '../utils/googleSheets';
 import { addHistory } from '../utils/history';
 import { Icons } from './Icons';
+import CustomerForm from './CustomerForm'; // Import reused component
 import './AddCustomer.css';
 
-// Helper to get initial state
-const getInitialState = () => {
-  const savedBranch = localStorage.getItem('qr:lastBranch');
-  return {
-    id: '',
-    nama: '',
-    kota: '',
-    sales: '',
-    pabrik: '',
-    telp: '',
-    cabang: savedBranch || 'BT SMG' // Default or Persistence
-  };
-};
-
 export default function AddCustomer({ onAdd }) {
-  // Initialize from localStorage
-  const [formData, setFormData] = useState(getInitialState);
   const [loading, setLoading] = useState(false);
+  // Key to force re-render form on reset
+  const [formKey, setFormKey] = useState(0);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // Persist Cabang Selection
-    if (name === 'cabang') {
-      localStorage.setItem('qr:lastBranch', value);
-    }
-  };
-
-  const setBranch = (br) => {
-    localStorage.setItem('qr:lastBranch', br);
-    setFormData(prev => ({
-      ...prev,
-      cabang: br
-    }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    // Setup upperCasedData up front
-    const upperCasedData = {};
-    Object.keys(formData).forEach(key => {
-      upperCasedData[key] = typeof formData[key] === 'string' ? formData[key].toUpperCase() : formData[key];
-    });
-
-    // Validasi mandatory fields
-    if (!upperCasedData.nama.trim()) {
-      toast.error('Nama customer wajib diisi!');
+  const handleAddSubmit = async (upperCasedData) => {
+    // Validasi mandatory fields (Extra safety, mostly handled by CustomerForm required attr)
+    if (!upperCasedData.nama.trim() || !upperCasedData.kota.trim() || !upperCasedData.cabang.trim()) {
+      toast.error('Data wajib belum lengkap!');
       return;
     }
 
-    if (!upperCasedData.kota.trim()) {
-      toast.error('Kota wajib diisi!');
-      return;
-    }
-
-    if (!upperCasedData.cabang.trim()) {
-      toast.error('Cabang wajib diisi!');
-      return;
-    }
-
-    setLoading(true); // Start loading
+    setLoading(true);
     const toastId = toast.loading('Menambahkan customer...');
 
     try {
@@ -78,6 +26,7 @@ export default function AddCustomer({ onAdd }) {
 
       if (result.success) {
         toast.success('Customer berhasil ditambahkan!', { id: toastId });
+
         // Log history
         addHistory('ADD', {
           customerId: upperCasedData.id || 'AUTO',
@@ -86,21 +35,17 @@ export default function AddCustomer({ onAdd }) {
           cabang: upperCasedData.cabang,
         });
 
-        // Reset form but PRESERVE branch
-        const currentBranch = formData.cabang;
-        setFormData({
-          ...getInitialState(),
-          cabang: currentBranch
-        });
+        // Reset form by incrementing key
+        setFormKey(prev => prev + 1);
 
-        if (onAdd) onAdd(upperCasedData); // Update parent list
+        if (onAdd) onAdd(upperCasedData);
       } else {
         toast.error('Gagal menambahkan: ' + result.error, { id: toastId });
       }
     } catch (error) {
       toast.error('Terjadi kesalahan: ' + error.message, { id: toastId });
     } finally {
-      setLoading(false); // End loading
+      setLoading(false);
     }
   };
 
@@ -111,135 +56,13 @@ export default function AddCustomer({ onAdd }) {
         Tambah Customer Baru
       </h2>
 
-      {/* BRANCH CONTEXT SELECTOR (Moved to Top) */}
-      <div className="form-group" style={{ marginBottom: 20 }}>
-        <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600 }}>Lokasi Data (Cabang) <span className="required">*</span></label>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {['BT SMG', 'BT JKT', 'BT SBY'].map(br => (
-            <button
-              key={br}
-              type="button"
-              onClick={() => setBranch(br)}
-              style={{
-                flex: 1, padding: '12px',
-                border: formData.cabang === br ? '2px solid #D4AF37' : '1px solid #ddd',
-                background: formData.cabang === br ? '#fffdf5' : 'white',
-                color: formData.cabang === br ? '#D4AF37' : '#666',
-                borderRadius: 8, cursor: 'pointer', fontWeight: formData.cabang === br ? 'bold' : 'normal',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {br}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit}>
-        {/* MANDATORY FIELDS */}
-        <div className="form-section">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ color: '#f59e0b' }}>⭐</span> Data Wajib
-          </h3>
-
-          <div className="form-group">
-            <label>Nama Customer <span className="required">*</span></label>
-            <input
-              type="text"
-              name="nama"
-              value={formData.nama}
-              onChange={handleChange}
-              placeholder="Contoh: REJEKI BANJAR NEGARA"
-              maxLength="100"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Kota <span className="required">*</span></label>
-            <input
-              type="text"
-              name="kota"
-              value={formData.kota}
-              onChange={handleChange}
-              placeholder="Contoh: SEMARANG"
-              maxLength="50"
-              required
-            />
-          </div>
-
-          {/* Old Cabang Select Removed */}
-        </div>
-
-        {/* OPTIONAL FIELDS */}
-        <div className="form-section">
-          <h3>📋 Data Tambahan (Opsional)</h3>
-
-          <div className="form-group">
-            <label>ID Customer</label>
-            <input
-              type="text"
-              name="id"
-              value={formData.id}
-              onChange={handleChange}
-              placeholder="Kosongkan jika belum ada ID"
-              maxLength="20"
-            />
-            <small>💡 Abaikan jika ID akan dibuat belakangan</small>
-          </div>
-
-          <div className="form-group">
-            <label>Sales</label>
-            <input
-              type="text"
-              name="sales"
-              value={formData.sales}
-              onChange={handleChange}
-              placeholder="Nama sales (optional)"
-              maxLength="50"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Pabrik</label>
-            <input
-              type="text"
-              name="pabrik"
-              value={formData.pabrik}
-              onChange={handleChange}
-              placeholder="Nama pabrik"
-              maxLength="50"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Nomor Telepon</label>
-            <input
-              type="tel"
-              name="telp"
-              value={formData.telp}
-              onChange={handleChange}
-              placeholder="Contoh: 08132776777"
-              maxLength="20"
-            />
-          </div>
-        </div>
-
-        {/* BUTTON */}
-        <button type="submit" disabled={loading} className="submit-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          {loading ? (
-            <>
-              <span className="spin"><Icons.Refresh size={20} /></span>
-              <span>Menambahkan...</span>
-            </>
-          ) : (
-            <>
-              <Icons.Check size={20} />
-              <span>Tambah Customer</span>
-            </>
-          )}
-        </button>
-      </form>
+      {/* REUSABLE FORM */}
+      <CustomerForm
+        key={formKey} // Force reset on success
+        onSubmit={handleAddSubmit}
+        isLoading={loading}
+        submitLabel="Tambah Customer"
+      />
     </div>
   );
 }

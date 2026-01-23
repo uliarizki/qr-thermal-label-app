@@ -29,22 +29,14 @@ async function callApi(action, payload = null) {
 
   try {
     // 1. Setup Parameters
-    // Untuk POST, payload dikirim di body sebagai string JSON
-    // Action tetap bisa di query param atau body, kita taruh di body saja biar clean
+    // We send 'action' via URL query param for maximum reliability with Google Apps Script
+    // and the rest of the data in the POST body.
+    const url = new URL(WEB_APP_URL);
+    url.searchParams.set('action', action);
 
-    // Construct Body
-    const bodyData = {
-      action: action,
-      ...payload
-    };
-
-    // Note: GAS `doPost` menerima event `e.postData.contents`
-    // Kita kirim raw string JSON via 'no-cors' mode tidak bisa dapat response,
-    // jadi kita pakai standard POST. Pastikan CORS enabled di GAS Script code (ContentService return)
-
-    const res = await fetch(WEB_APP_URL, {
+    const res = await fetch(url.toString(), {
       method: 'POST',
-      body: JSON.stringify(bodyData),
+      body: JSON.stringify(payload),
       redirect: 'follow'
     });
 
@@ -260,6 +252,24 @@ export async function addCustomer(customerData) {
   if (!result.success) {
     return { success: false, error: result.error };
   }
+
+  return { success: true, data: result.data };
+}
+
+// Edit existing customer
+export async function editCustomer(customerData) {
+  if (!customerData.id) {
+    return { success: false, error: 'Customer tanpa ID tidak dapat diedit.' };
+  }
+
+  const result = await callApi('editCustomer', { customer: customerData });
+
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  // Clear cache to force reload next time
+  clearCache();
 
   return { success: true, data: result.data };
 }
