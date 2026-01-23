@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { useNetworkStatus } from './hooks/useNetworkStatus';
 import QRScanner from './components/QRScanner';
 import CustomerSearch from './components/CustomerSearch';
 import AddCustomer from './components/AddCustomer';
@@ -8,16 +9,20 @@ import PrintPreview from './components/PrintPreview.jsx';
 import History from './components/History';
 import Login from './components/Login';
 
-import AdminPanel from './components/AdminPanel'; // NEW
-import GuestBook from './components/GuestBook'; // NEW: Event/Attendance
+// LAZY LOAD HEAVY COMPONENTS
+const AdminPanel = lazy(() => import('./components/AdminPanel'));
+const GuestBook = lazy(() => import('./components/GuestBook'));
+
 import CustomerDetailModal from './components/CustomerDetailModal';
 import { getCustomers, getLastUpdate, getCachedCustomers } from './utils/googleSheets';
 import { Icons } from './components/Icons';
+import Skeleton from 'react-loading-skeleton'; // Import Skeleton for fallback
 import './App.css';
 
 // Main Inner Component that uses Auth Context
 function AppContent() {
   const { user, logout, loading } = useAuth();
+  const { isOnline } = useNetworkStatus();
 
   const getStoredTab = () => {
     if (typeof window === 'undefined') return 'search';
@@ -262,6 +267,25 @@ function AppContent() {
         </div>
 
         <div className="user-info-section" style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
+          {/* Network Status Indicator */}
+          {!isOnline && (
+            <span
+              style={{
+                background: '#ef4444',
+                color: 'white',
+                padding: '4px 8px',
+                borderRadius: 4,
+                fontSize: 10,
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4
+              }}
+              title="Tidak ada koneksi internet"
+            >
+              ⚠️ OFFLINE
+            </span>
+          )}
           <div className="user-name" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             {user?.role === 'admin' ? <span title="Admin">👑</span> : <Icons.User size={16} />}
             <span>{user?.username}</span>
@@ -332,45 +356,36 @@ function AppContent() {
 
       {/* CONTENT AREA */}
       <main className="app-content">
-        {/* ... content render ... */}
-        {activeTab === 'scan' && (
-          <QRScanner
-            onScan={handleScan}
-            onClose={() => navigateTo('search')}
-          />
-        )}
+        <Suspense fallback={<div style={{ padding: 20 }}><Skeleton count={5} height={50} /></div>}>
+          {activeTab === 'scan' && (
+            <QRScanner
+              onScan={handleScan}
+              onClose={() => navigateTo('search')}
+            />
+          )}
 
-        {activeTab === 'search' && (
-          <CustomerSearch
-            customers={customers}
-            onSelect={handleGlobalSelect}
-            onSync={handleSync}
-            isSyncing={isSyncing}
-            lastUpdated={lastUpdated}
-            initialQuery={
-              // If the history item was a SEARCH action, we might have stored the query in globalSelectedCustomer?
-              // No, globalSelectedCustomer is for the modal.
-              // We need a specific state for search query restoration.
-              // Let's check handleHistorySelect again. It calls navigateTo('search').
-              // We need to pass the query too.
-              // For now, let's rely on localStorage or add a state in AppContent. 
-              // Wait, handleHistorySelect calls navigateTo('search') but doesn't set a query state.
-              // I should update handleHistorySelect to set a 'restoredSearchQuery' state.
-              restoredSearchQuery
-            }
-            onScanTrigger={() => navigateTo('scan')}
-          />
-        )}
+          {activeTab === 'search' && (
+            <CustomerSearch
+              customers={customers}
+              onSelect={handleGlobalSelect}
+              onSync={handleSync}
+              isSyncing={isSyncing}
+              lastUpdated={lastUpdated}
+              initialQuery={restoredSearchQuery}
+              onScanTrigger={() => navigateTo('scan')}
+            />
+          )}
 
-        {activeTab === 'add' && (
-          <AddCustomer onAdd={handleAddCustomer} />
-        )}
+          {activeTab === 'add' && (
+            <AddCustomer onAdd={handleAddCustomer} />
+          )}
 
-        {activeTab === 'event' && <GuestBook />}
+          {activeTab === 'event' && <GuestBook />}
 
-        {activeTab === 'history' && <History onSelect={handleHistorySelect} />}
+          {activeTab === 'history' && <History onSelect={handleHistorySelect} />}
 
-        {activeTab === 'admin' && user?.role === 'admin' && <AdminPanel />}
+          {activeTab === 'admin' && user?.role === 'admin' && <AdminPanel />}
+        </Suspense>
 
         <CustomerDetailModal
           customer={globalSelectedCustomer}

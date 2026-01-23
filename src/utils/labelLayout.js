@@ -2,7 +2,7 @@
 export const LAYOUT_CONSTANTS = {
     WIDTH: 55,
     HEIGHT: 40,
-    PADDING: 1, // 1mm
+    PADDING: 0, // No outer margin
     GAP: 1,     // 1mm
     QR_SIZE: 22, // 22mm
 };
@@ -124,7 +124,7 @@ export function calculateLabelLayout(data, measureTextFn) {
         isBold: true,
         x: contentX,
         y: currentY,
-        lineHeightMm: nameResult.fontSize * 0.55,
+        lineHeightMm: nameResult.fontSize * 0.4, // Reduced line spacing
     };
 
     currentY += (nameResult.lines.length * nameBlock.lineHeightMm);
@@ -140,7 +140,7 @@ export function calculateLabelLayout(data, measureTextFn) {
         isBold: true,
         x: contentX,
         y: currentY,
-        lineHeightMm: cityResult.fontSize * 0.55,
+        lineHeightMm: cityResult.fontSize * 0.4, // Reduced line spacing
     };
     currentY += (cityResult.lines.length * cityBlock.lineHeightMm); // Add height based on lines
     currentY += 1; // Small gap after city
@@ -155,15 +155,17 @@ export function calculateLabelLayout(data, measureTextFn) {
         y: currentY,
     };
 
-    // 4. Branch (Align with ID row)
+    // 4. Branch (Smart: Align with ID row, but shift DOWN if content overlaps)
     const branchText = (data.ws || '').toString();
     const branchWidth = measureTextFn(branchText, 10, true);
+    // Base position: same row as ID. Only shift DOWN (never up) if city/sales extends below.
+    const branchY = Math.max(id.y, currentY);
     const branchBlock = {
         text: branchText,
         fontSize: 10,
         isBold: true,
-        x: WIDTH - 1 - branchWidth,
-        y: id.y, // Align with ID
+        x: WIDTH - branchWidth, // No right margin
+        y: branchY, // Always >= id.y
     };
 
     return {

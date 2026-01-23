@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { toast } from 'react-hot-toast';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -6,7 +6,8 @@ import 'react-loading-skeleton/dist/skeleton.css';
 
 import { Icons } from './Icons';
 import { addHistory } from '../utils/history';
-import BatchGeneratorModal from './BatchGeneratorModal'; // NEW
+import CustomerCard from './CustomerCard'; // MEMOIZED
+const BatchGeneratorModal = lazy(() => import('./BatchGeneratorModal')); // LAZY LOADED
 import './CustomerSearch.css';
 
 const STORAGE_KEY = 'qr:lastSearchQuery';
@@ -232,27 +233,11 @@ export default function CustomerSearch({
       {searchQuery.trim().length > 0 && filteredCustomers.length > 0 && (
         <div className={`customer-list ${activeView}-view`}>
           {filteredCustomers.map((customer, idx) => (
-            <div
+            <CustomerCard
               key={customer.id || idx}
-              className="customer-card"
-              onClick={() => handleCardClick(customer)}
-            >
-              <div className="customer-header">
-                <span className="customer-id">{customer.id}</span>
-                <span className="customer-name">{customer.nama}</span>
-              </div>
-              <div className="customer-details">
-                <div className="detail-item city" title="Kota">
-                  {customer.kota ? `📍 ${customer.kota}` : <span className="empty">-</span>}
-                </div>
-                <div className="detail-item phone" title="Telepon">
-                  {customer.telp ? `📱 ${customer.telp}` : <span className="empty">-</span>}
-                </div>
-                <div className="detail-item factory" title="Pabrik/Cabang">
-                  {customer.cabang || customer.pabrik ? `🏭 ${customer.cabang || customer.pabrik}` : <span className="empty">-</span>}
-                </div>
-              </div>
-            </div>
+              customer={customer}
+              onClick={handleCardClick}
+            />
           ))}
         </div>
       )}
@@ -282,11 +267,13 @@ export default function CustomerSearch({
       </button>
 
       {showBatchModal && (
-        <BatchGeneratorModal
-          customers={customers}
-          onClose={() => setShowBatchModal(false)}
-          onSync={onSync}
-        />
+        <Suspense fallback={<div className="modal-overlay">Loading Tools...</div>}>
+          <BatchGeneratorModal
+            customers={customers}
+            onClose={() => setShowBatchModal(false)}
+            onSync={onSync}
+          />
+        </Suspense>
       )}
     </div>
   );

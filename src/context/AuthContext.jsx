@@ -4,6 +4,9 @@ import { toast } from 'react-hot-toast';
 
 const AuthContext = createContext(null);
 
+// Session expiry: 7 days in milliseconds
+const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -11,12 +14,27 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         // Check local storage for session
         const storedUser = localStorage.getItem('qr:auth_user');
+        const loginTime = localStorage.getItem('qr:auth_time');
+
         if (storedUser) {
             try {
-                setUser(JSON.parse(storedUser));
+                // Check if session expired
+                const loginTimestamp = loginTime ? parseInt(loginTime, 10) : 0;
+                const now = Date.now();
+
+                if (now - loginTimestamp > SESSION_EXPIRY_MS) {
+                    // Session expired - auto logout
+                    console.log('Session expired, logging out...');
+                    localStorage.removeItem('qr:auth_user');
+                    localStorage.removeItem('qr:auth_time');
+                    toast.error('Sesi telah berakhir. Silakan login kembali.', { duration: 5000 });
+                } else {
+                    setUser(JSON.parse(storedUser));
+                }
             } catch (e) {
                 console.error("Invalid auth token");
                 localStorage.removeItem('qr:auth_user');
+                localStorage.removeItem('qr:auth_time');
             }
         }
         setLoading(false);
@@ -28,13 +46,14 @@ export const AuthProvider = ({ children }) => {
             const result = await loginUser(username, password);
 
             if (result.success) {
-                const userData = result.data; // { username, role, token }
+                const userData = result.data;
                 setUser(userData);
+
+                // Store user and login timestamp
                 localStorage.setItem('qr:auth_user', JSON.stringify(userData));
+                localStorage.setItem('qr:auth_time', Date.now().toString());
 
                 toast.success(`Welcome back, ${userData.username}!`, { id: toastId });
-
-                // Log login activity
                 logActivity(userData.username, 'LOGIN', { timestamp: new Date() });
                 return true;
             } else {
@@ -53,13 +72,12 @@ export const AuthProvider = ({ children }) => {
         }
 
         // Secure Logout: Clear All Local Data
-        const keysToRemove = ['qr:auth_user', 'qr:customers_cache', 'qr:lastTab', 'qr:history_log'];
+        const keysToRemove = ['qr:auth_user', 'qr:auth_time', 'qr:customers_cache', 'qr:lastTab', 'qr:history_log'];
         keysToRemove.forEach(key => localStorage.removeItem(key));
 
         setUser(null);
         toast.success('Logged out securely');
 
-        // Force Reload to clear memory state
         setTimeout(() => {
             window.location.reload();
         }, 500);
@@ -73,3 +91,4 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => useContext(AuthContext);
+

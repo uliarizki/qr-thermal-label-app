@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import html2canvas from 'html2canvas'; // Import html2canvas
+import QRCode from 'react-qr-code'; // Local QR Generation
 import './Components.css';
 import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
 import { shareOrDownload, downloadBlob } from '../utils/shareUtils';
@@ -40,14 +41,15 @@ export default function PrintPreview({ data }) {
   };
 
   const handleShare = async () => {
+    const toastId = toast.loading('Generating PDF...');
     try {
-      const toastId = toast.loading('Generating PDF...');
       const { blob, filename } = await generateLabelPdfVector(data, { ...currentSize, returnBlob: true });
 
       await shareOrDownload(blob, filename, 'Label PDF', 'Print using Rongta/Thermal Printer App', 'application/pdf');
+      toast.dismiss(toastId); // Dismiss loading toast on success
     } catch (err) {
       console.error('Share error:', err);
-      toast.error('Gagal Share PDF');
+      toast.error('Gagal Share PDF', { id: toastId }); // Replace loading with error
     }
   };
 
@@ -227,12 +229,11 @@ function LabelContent({ data, labelSize }) {
           height: `${qr.size}mm`,
         }}
       >
-        <img
-          src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(
-            data.raw || JSON.stringify(data)
-          )}`}
-          alt="QR"
-          style={{ width: '100%', height: '100%', imageRendering: 'pixelated' }}
+        <QRCode
+          value={data.raw || JSON.stringify(data)}
+          size={256}
+          style={{ height: "100%", width: "100%" }}
+          viewBox={`0 0 256 256`}
         />
       </div>
 

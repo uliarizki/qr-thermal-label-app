@@ -2,17 +2,24 @@ import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { addCustomer } from '../utils/googleSheets';
 import { addHistory } from '../utils/history';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Icons } from './Icons';
 import CustomerForm from './CustomerForm'; // Import reused component
 import './AddCustomer.css';
 
 export default function AddCustomer({ onAdd }) {
   const [loading, setLoading] = useState(false);
-  // Key to force re-render form on reset
   const [formKey, setFormKey] = useState(0);
+  const { isOnline } = useNetworkStatus();
 
   const handleAddSubmit = async (upperCasedData) => {
-    // Validasi mandatory fields (Extra safety, mostly handled by CustomerForm required attr)
+    // Block submission if offline
+    if (!isOnline) {
+      toast.error('Tidak bisa menambah customer saat offline. Periksa koneksi internet.');
+      return;
+    }
+
+    // Validasi mandatory fields
     if (!upperCasedData.nama.trim() || !upperCasedData.kota.trim() || !upperCasedData.cabang.trim()) {
       toast.error('Data wajib belum lengkap!');
       return;
@@ -27,7 +34,6 @@ export default function AddCustomer({ onAdd }) {
       if (result.success) {
         toast.success('Customer berhasil ditambahkan!', { id: toastId });
 
-        // Log history
         addHistory('ADD', {
           customerId: upperCasedData.id || 'AUTO',
           nama: upperCasedData.nama,
@@ -35,9 +41,7 @@ export default function AddCustomer({ onAdd }) {
           cabang: upperCasedData.cabang,
         });
 
-        // Reset form by incrementing key
         setFormKey(prev => prev + 1);
-
         if (onAdd) onAdd(upperCasedData);
       } else {
         toast.error('Gagal menambahkan: ' + result.error, { id: toastId });
@@ -56,13 +60,31 @@ export default function AddCustomer({ onAdd }) {
         Tambah Customer Baru
       </h2>
 
-      {/* REUSABLE FORM */}
+      {/* Offline Warning Banner */}
+      {!isOnline && (
+        <div style={{
+          background: '#fef2f2',
+          border: '1px solid #fecaca',
+          color: '#991b1b',
+          padding: '10px 15px',
+          borderRadius: 8,
+          marginBottom: 15,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8
+        }}>
+          <span>⚠️</span>
+          <span>Anda sedang offline. Fitur ini membutuhkan koneksi internet.</span>
+        </div>
+      )}
+
       <CustomerForm
-        key={formKey} // Force reset on success
+        key={formKey}
         onSubmit={handleAddSubmit}
-        isLoading={loading}
-        submitLabel="Tambah Customer"
+        isLoading={loading || !isOnline}
+        submitLabel={isOnline ? "Tambah Customer" : "Offline - Tidak Tersedia"}
       />
     </div>
   );
 }
+

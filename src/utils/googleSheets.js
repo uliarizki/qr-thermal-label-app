@@ -1,7 +1,7 @@
 // src/utils/googleSheets.js
 
-// const WEB_APP_URL = import.meta.env.VITE_GAS_WEBAPP_URL;
-const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxNkPhx15iUrHerLjJxe9d458ZINVbRiKHFZcSDqSkUsqepfQMJpemdDii1UHoX1o6cjQ/exec';
+// API URL from environment variable (see .env file)
+const WEB_APP_URL = import.meta.env.VITE_GAS_WEBAPP_URL;
 // Feature Guest Book: Attendance
 const CACHE_ATTENDANCE_KEY = 'qr:attendance'; // Minimal caching for offline
 const CACHE_KEY = 'qr:customersData';

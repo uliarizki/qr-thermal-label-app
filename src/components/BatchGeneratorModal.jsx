@@ -4,6 +4,9 @@ import { saveAs } from 'file-saver';
 import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
 import { addCustomer } from '../utils/googleSheets';
 import { Icons } from './Icons';
+import * as ReactWindow from 'react-window';
+const FixedSizeList = ReactWindow.FixedSizeList || ReactWindow.default?.FixedSizeList;
+import AutoSizer from 'react-virtualized-auto-sizer';
 
 export default function BatchGeneratorModal({ customers, onClose, onSync }) {
     const [inputText, setInputText] = useState('');
@@ -181,37 +184,57 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                     )}
 
                     {step === 'review' && (
-                        <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #ddd' }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                                <thead>
-                                    <tr style={{ background: '#f5f5f5', textAlign: 'left' }}>
-                                        <th style={{ padding: 8 }}>Name</th>
-                                        <th style={{ padding: 8 }}>City</th>
-                                        <th style={{ padding: 8 }}>Branch</th>
-                                        <th style={{ padding: 8 }}>Status</th>
-                                        <th style={{ padding: 8 }}>ID</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {items.map((item, idx) => (
-                                        <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                                            <td style={{ padding: 8 }}>{item.name}</td>
-                                            <td style={{ padding: 8 }}>{item.city}</td>
-                                            <td style={{ padding: 8 }}>{item.branch}</td>
-                                            <td style={{ padding: 8 }}>
-                                                <span style={{
-                                                    padding: '2px 6px', borderRadius: 4,
-                                                    background: item.status === 'ready' ? '#d1fae5' : '#ffedd5',
-                                                    color: item.status === 'ready' ? '#065f46' : '#9a3412'
-                                                }}>
-                                                    {item.status.toUpperCase()}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: 8 }}>{item.finalId || <i>(No ID)</i>}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                        <div style={{ flex: 1, border: '1px solid #ddd', display: 'flex', flexDirection: 'column' }}>
+                            {/* Header */}
+                            <div style={{ display: 'flex', background: '#f5f5f5', borderBottom: '1px solid #ddd', paddingRight: 10 }}>
+                                <div style={{ flex: 1.5, padding: 8, fontWeight: 'bold' }}>Name</div>
+                                <div style={{ flex: 1, padding: 8, fontWeight: 'bold' }}>City</div>
+                                <div style={{ flex: 1, padding: 8, fontWeight: 'bold' }}>Branch</div>
+                                <div style={{ width: 80, padding: 8, fontWeight: 'bold' }}>Status</div>
+                                <div style={{ width: 80, padding: 8, fontWeight: 'bold' }}>ID</div>
+                            </div>
+
+                            {/* Virtualized List */}
+                            <div style={{ flex: 1 }}>
+                                <AutoSizer>
+                                    {({ height, width }) => (
+                                        <FixedSizeList
+                                            height={height}
+                                            width={width}
+                                            itemCount={items.length}
+                                            itemSize={45}
+                                        >
+                                            {({ index, style }) => {
+                                                const item = items[index];
+                                                return (
+                                                    <div style={{
+                                                        ...style,
+                                                        display: 'flex',
+                                                        borderBottom: '1px solid #eee',
+                                                        alignItems: 'center',
+                                                        background: index % 2 ? '#fafafa' : 'white'
+                                                    }}>
+                                                        <div style={{ flex: 1.5, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
+                                                        <div style={{ flex: 1, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.city}</div>
+                                                        <div style={{ flex: 1, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.branch}</div>
+                                                        <div style={{ width: 80, padding: '0 8px' }}>
+                                                            <span style={{
+                                                                padding: '2px 6px', borderRadius: 4,
+                                                                fontSize: 11,
+                                                                background: item.status === 'ready' ? '#d1fae5' : '#ffedd5',
+                                                                color: item.status === 'ready' ? '#065f46' : '#9a3412'
+                                                            }}>
+                                                                {item.status.toUpperCase()}
+                                                            </span>
+                                                        </div>
+                                                        <div style={{ width: 80, padding: '0 8px', fontSize: 12 }}>{item.finalId || <i>-</i>}</div>
+                                                    </div>
+                                                );
+                                            }}
+                                        </FixedSizeList>
+                                    )}
+                                </AutoSizer>
+                            </div>
                         </div>
                     )}
 
