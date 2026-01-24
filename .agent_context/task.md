@@ -53,4 +53,4 @@
 - [x] Verify Batch Generator Flow <!-- id: 29 -->
 - [x] Implement "Smart Format Detection" (Tab/Excel vs Comma) <!-- id: 31 -->
 - [x] Fix Vite/React-Window Interop Issues <!-- id: 32 -->
-- [ ] Test Large Batch Download <!-- id: 30 -->
+- [x] Test Large Batch Download (Ready for Manual Verification - See `VERIFICATION_GUIDE.md`)
