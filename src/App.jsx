@@ -1,6 +1,7 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PrinterProvider } from './context/PrinterContext'; // New Provider
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import QRScanner from './components/QRScanner';
 import CustomerSearch from './components/CustomerSearch';
@@ -20,7 +21,7 @@ import Skeleton from 'react-loading-skeleton'; // Import Skeleton for fallback
 import './App.css';
 
 // Main Inner Component that uses Auth Context
-function AppContent() {
+function MainApp() {
   const { user, logout, loading } = useAuth();
   const { isOnline } = useNetworkStatus();
 
@@ -58,7 +59,6 @@ function AppContent() {
   }, []);
   const [customers, setCustomers] = useState(() => {
     const cached = getCachedCustomers();
-    console.log('🚀 App State Init: Loaded from cache?', cached ? cached.length : 0);
     return cached || [];
   });
   const [isSyncing, setIsSyncing] = useState(false);
@@ -140,7 +140,6 @@ function AppContent() {
     // 1. Auto-sync every 5 minutes
     const intervalId = setInterval(() => {
       if (user) { // Only sync if logged in
-        console.log('⚡ Auto-sync triggered');
         handleSync(true); // Silent sync
       }
     }, 5 * 60 * 1000);
@@ -149,7 +148,6 @@ function AppContent() {
     const handleFocus = () => {
       // Optional: Debounce or check last update time to prevent spam
       if (user) {
-        console.log('👀 Window focused, syncing...');
         handleSync(true); // Silent sync
       }
     };
@@ -249,7 +247,7 @@ function AppContent() {
   return (
     <div className="app-container">
       <div className="global-watermark-overlay"></div>
-      <Toaster position="top-center" reverseOrder={false} />
+      {/* <Toaster position="top-center" reverseOrder={false} /> */} {/* Moved to root App component */}
 
       {/* BRANDED HEADER */}
       <header className="app-header">
@@ -399,8 +397,11 @@ function AppContent() {
 // Root Component
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <PrinterProvider>
+      <AuthProvider>
+        <MainApp />
+        <Toaster position="top-right" />
+      </AuthProvider>
+    </PrinterProvider>
   );
 }

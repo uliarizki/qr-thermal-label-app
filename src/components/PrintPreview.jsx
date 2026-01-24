@@ -7,11 +7,14 @@ import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
 import { shareOrDownload, downloadBlob } from '../utils/shareUtils';
 import { Icons } from './Icons';
 import { calculateLabelLayout } from '../utils/labelLayout';
+import { usePrinter } from '../context/PrinterContext';
+import escPosEncoder from '../utils/escPosEncoder';
 
 const DEFAULT_SIZE = { width: 55, height: 40 }; // sebelumnya 55x40 atau 80x60
 
 export default function PrintPreview({ data }) {
   const previewRef = useRef(null);
+  const { isConnected, isConnecting, connect, print, connectionType } = usePrinter();
   const [customWidth, setCustomWidth] = useState(DEFAULT_SIZE.width);
   const [customHeight, setCustomHeight] = useState(DEFAULT_SIZE.height);
   const [useCustom, setUseCustom] = useState(false);
@@ -41,6 +44,33 @@ export default function PrintPreview({ data }) {
       setIsPrinting(false);
       toast.error('Gagal generate PDF');
     }
+  }
+
+
+  const handleDirectPrint = async () => {
+    // Generate ESC/POS Commands
+    const encoder = escPosEncoder
+      .initEppos() // Use specific EPPOS/RPP02 optimization (High Density)
+      .align('center')
+      // QR Code
+      .qr(data.raw || JSON.stringify(data), 8) // Size 8
+      .newline(1)
+      // ID
+      .size(1, 1) // Medium
+      .text(data.it || data.id || '')
+      .newline(1)
+      // Name
+      .bold(true)
+      .size(0, 0) // Normal
+      .text(data.nt || data.nama || '')
+      .newline(1)
+      // City
+      .bold(false)
+      .text(data.at || data.kota || '')
+      .newline(2) // Extra space
+      .cut();
+
+    await print(encoder.encode());
   };
 
   const handleShare = async () => {
@@ -125,6 +155,41 @@ export default function PrintPreview({ data }) {
         </div>
 
         <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+          {/* TOMBOL NATIVE PRINTING */}
+          <button
+            onClick={isConnected ? handleDirectPrint : connect}
+            className="print-btn"
+            disabled={isConnecting}
+            style={{
+              flex: 1.5, // Make it prominent
+              background: isConnected ? '#10b981' : '#4f46e5', // Green if connected, Blue if not
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              padding: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            {isConnecting ? (
+              <>
+                <span className="animate-spin"><Icons.Refresh size={20} /></span>
+                <span>Connecting...</span>
+              </>
+            ) : isConnected ? (
+              <>
+                <Icons.Print size={20} />
+                <span>Print ({connectionType === 'usb' ? 'USB' : 'BT'})</span>
+              </>
+            ) : (
+              <>
+                <Icons.Print size={20} />
+                <span>Connect Printer</span>
+              </>
+            )}
+          </button>
+
           {/* TOMBOL KIRI: DOWNLOAD PDF */}
           <button
             onClick={handlePrint}

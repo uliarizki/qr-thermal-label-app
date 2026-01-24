@@ -4,13 +4,15 @@ import { saveAs } from 'file-saver';
 import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
 import { addCustomer } from '../utils/googleSheets';
 import { Icons } from './Icons';
-import { List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import * as ReactWindow from 'react-window';
+const List = ReactWindow.FixedSizeList || ReactWindow.default?.FixedSizeList || ReactWindow.default;
+import * as AutoSizerPkg from 'react-virtualized-auto-sizer';
+const AutoSizer = AutoSizerPkg.default || AutoSizerPkg;
 
 
 // Row Component for Virtualized List
-const Row = ({ items, index, style }) => {
-    const item = items[index];
+const Row = ({ data, index, style }) => {
+    const item = data[index];
     if (!item) return null;
     return (
         <div style={{
@@ -40,6 +42,7 @@ const Row = ({ items, index, style }) => {
 
 export default function BatchGeneratorModal({ customers, onClose, onSync }) {
     const [inputText, setInputText] = useState('');
+    const [inputMode, setInputMode] = useState('auto'); // 'auto', 'excel', 'csv'
     const [items, setItems] = useState([]);
     const [step, setStep] = useState('input'); // input, review, processing
     const [isProcessing, setIsProcessing] = useState(false);
@@ -58,25 +61,49 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
     const parseInput = () => {
         if (!inputText.trim()) return;
 
+        // Auto-detect format based on first few lines
         const lines = inputText.split(/\n/);
         const parsed = lines.map((line, idx) => {
-            const parts = line.split(/[\t,;|]/).map(s => s.trim());
-            // Expect: Name, City, Branch
-            if (parts.length < 3) return null;
+            let parts;
+
+            // Logic Selection
+            if (inputMode === 'excel') {
+                // Force Excel (Tab only)
+                parts = line.split('\t').map(s => s.trim());
+            } else if (inputMode === 'csv') {
+                // Force CSV (Comma/Semi)
+                parts = line.split(/[,;]/).map(s => s.trim());
+            } else {
+                // Auto Detect (Default)
+                const hasTab = line.includes('\t');
+                parts = hasTab
+                    ? line.split('\t').map(s => s.trim())
+                    : line.split(/[,;|]/).map(s => s.trim());
+            }
+
+            // Support Flexible Formats:
+            // 1. Name only
+            // 2. Name, City
+            // 3. Name, City, Branch
+
+            if (parts.length === 0 || !parts[0]) return null;
 
             const name = parts[0];
-            const city = parts[1];
-            const branch = parts[2];
-
-            // Basic validation
-            if (!name || !city || !branch) return null;
+            const city = parts[1] || '-';
+            const branch = parts[2] || '-';
 
             // Check existence
-            // Match by Name + Branch (case insensitive)
-            const existing = customers.find(c =>
-                c.nama.toLowerCase() === name.toLowerCase() &&
-                c.cabang.toLowerCase() === branch.toLowerCase()
-            );
+            // Match by Name only if City/Branch are default
+            const existing = customers.find(c => {
+                const nameMatch = c.nama.toLowerCase() === name.toLowerCase();
+                const cityMatch = (c.kota || '').toLowerCase() === city.toLowerCase();
+
+                // Strict match if city provided, loose if not
+                if (city !== '-' && branch !== '-') {
+                    return nameMatch && cityMatch && (c.cabang || '').toLowerCase() === branch.toLowerCase();
+                }
+                return nameMatch;
+            });
 
             return {
                 id: idx,
@@ -212,13 +239,64 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                 <div className="modal-body" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 20 }}>
                     {step === 'input' && (
                         <>
-                            <p style={{ marginBottom: 10 }}>Paste your data below. Format per line: <b>Name, City, Branch</b></p>
+                            <div style={{ marginBottom: 15, display: 'flex', gap: 15, alignItems: 'center' }}>
+                                <span style={{ fontWeight: 'bold' }}>Mode:</span>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                                    <input type="radio" checked={inputMode === 'auto'} onChange={() => setInputMode('auto')} />
+                                    🤖 Auto
+                                </label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                                    <input type="radio" checked={inputMode === 'excel'} onChange={() => setInputMode('excel')} />
+                                    📊 Excel (Tab)
+                                </label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                                    <input type="radio" checked={inputMode === 'csv'} onChange={() => setInputMode('csv')} />
+                                    📝 Manual (Comma)
+                                </label>
+                            </div>
+
+                            <p style={{ marginBottom: 10 }}>Paste data. Format: <b>Name</b> (Min) or <b>Name, City, Branch</b></p>
                             <textarea
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 placeholder={"Budi Santoso, Tegal, Pasar Pagi\nSiti Aminah, Brebes, Ketanggungan"}
                                 style={{ flex: 1, width: '100%', padding: 10, fontFamily: 'monospace' }}
                             />
+                            {inputText.trim() && (
+                                <div style={{ fontSize: 12, marginTop: 5, color: '#666', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                    <span>Format Detected:</span>
+                                    {(() => {
+                                        // Logic for UI Feedback
+                                        let detected = 'list';
+                                        if (inputMode === 'excel') detected = 'excel';
+                                        else if (inputMode === 'csv') detected = 'csv';
+                                        else if (inputText.includes('\t')) detected = 'excel';
+                                        else if (inputText.includes(',') || inputText.includes(';')) detected = 'csv';
+
+                                        if (detected === 'excel') return (
+                                            <span style={{ background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: 4, fontWeight: 'bold' }}>
+                                                📊 Excel / Spreadsheet (Tab)
+                                            </span>
+                                        );
+                                        if (detected === 'csv') return (
+                                            <span style={{ background: '#fef9c3', color: '#854d0e', padding: '2px 6px', borderRadius: 4, fontWeight: 'bold' }}>
+                                                📝 CSV (Comma/Semi)
+                                            </span>
+                                        );
+                                        return (
+                                            <span style={{ background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: 4, fontWeight: 'bold' }}>
+                                                📄 Single List (Names Only)
+                                            </span>
+                                        );
+                                    })()}
+
+                                    <span style={{ marginLeft: 'auto', fontSize: 11, fontStyle: 'italic' }}>
+                                        {/* Dynamic Hint */}
+                                        {inputMode === 'auto' && !inputText.includes('\t') && !inputText.includes(',') && !inputText.includes(';') && "Processing line by line (1 column)"}
+                                        {inputText.includes('\t') && "Safe for commas inside names"}
+                                    </span>
+                                </div>
+                            )}
                         </>
                     )}
 
@@ -241,9 +319,12 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                             style={{ height, width }}
                                             itemCount={items.length}
                                             rowHeight={45}
-                                            itemProps={{ items }}
-                                            rowComponent={Row}
-                                        />
+                                            itemData={items}
+                                            width={width} // AutoSizer provides width
+                                            height={height} // AutoSizer provides height
+                                        >
+                                            {Row}
+                                        </List>
                                     )}
                                 </AutoSizer>
                             </div>

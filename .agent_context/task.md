@@ -40,3 +40,17 @@
 - [x] Consistent modal behavior (Backdrop close) <!-- id: 20 -->
 - [x] Loading states everywhere <!-- id: 21 -->
 - [x] Desktop enhancements (Shortcuts) <!-- id: 22 -->
+
+# Phase 4: Native Printing (The "Ga Ribet" Solution)
+- [x] Research Web Serial/Bluetooth API (Completed) <!-- id: 23 -->
+- [x] Create `EscPosEncoder` (Layout Translator) <!-- id: 25 -->
+- [x] Create `PrinterContext` (Smart Manager) <!-- id: 24 -->
+- [x] Build "Direct Print" UI in `PrintPreview` <!-- id: 26 -->
+- [x] Test USB Printing (Desktop) <!-- id: 27 -->
+- [ ] Test Bluetooth Printing (Mobile) <!-- id: 28 -->
+
+# Phase 5: Batch & Optimization (Next)
+- [x] Verify Batch Generator Flow <!-- id: 29 -->
+- [x] Implement "Smart Format Detection" (Tab/Excel vs Comma) <!-- id: 31 -->
+- [x] Fix Vite/React-Window Interop Issues <!-- id: 32 -->
+- [ ] Test Large Batch Download <!-- id: 30 -->

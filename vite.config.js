@@ -52,8 +52,14 @@ export default defineConfig({
     port: 3000,
     open: true
   },
+  optimizeDeps: {
+    include: ['react-window', 'react-virtualized-auto-sizer']
+  },
   build: {
     chunkSizeWarningLimit: 1600,
+    commonjsOptions: {
+      include: [/react-window/, /react-virtualized-auto-sizer/, /node_modules/]
+    }
   },
   test: {
     globals: true,

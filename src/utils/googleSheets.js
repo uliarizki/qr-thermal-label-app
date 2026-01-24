@@ -149,20 +149,17 @@ export function getLastUpdate() {
 export function getCachedCustomers() {
   // Debug: Check memory cache
   if (customerCache) {
-    console.log('✅ getCachedCustomers: Hit memory cache', customerCache.length);
     return customerCache;
   }
 
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem(CACHE_KEY);
     // Debug: Check local storage
-    console.log('🔍 getCachedCustomers: checking localStorage...', saved ? 'Found data' : 'Empty');
 
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         customerCache = parsed; // Populate memory cache
-        console.log('✅ getCachedCustomers: Parsed localStorage', parsed.length);
         return parsed;
       } catch (e) {
         console.error('❌ getCachedCustomers: Failed to parse localStorage', e);
@@ -179,13 +176,11 @@ export async function getCustomers(forceReload = false) {
   if (!forceReload) {
     const cached = getCachedCustomers();
     if (cached) {
-      console.log('Using cached data in getCustomers');
       return { success: true, data: cached, source: 'cache' };
     }
   }
 
   // 2. Fetch from API
-  console.log('Fetching fresh data...');
   const result = await callApi('getCustomers');
 
   if (result.success) {
@@ -197,7 +192,6 @@ export async function getCustomers(forceReload = false) {
       try {
         localStorage.setItem(CACHE_KEY, JSON.stringify(formattedData));
         localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-        console.log('💾 Data saved to localStorage', formattedData.length);
       } catch (e) {
         console.error('❌ Failed to save to localStorage', e);
       }
@@ -225,7 +219,6 @@ export async function getCustomersLite(forceReload = false) {
   }
 
   // 2. Fetch from API
-  console.log('Fetching LITE data...');
   const result = await callApi('getCustomersLite');
 
   if (result.success) {
