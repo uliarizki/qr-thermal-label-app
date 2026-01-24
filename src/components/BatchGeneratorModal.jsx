@@ -1,12 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
 import { addCustomer } from '../utils/googleSheets';
 import { Icons } from './Icons';
-import * as ReactWindow from 'react-window';
-const FixedSizeList = ReactWindow.FixedSizeList || ReactWindow.default?.FixedSizeList;
+import { List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
+
+
+// Row Component for Virtualized List
+const Row = ({ items, index, style }) => {
+    const item = items[index];
+    if (!item) return null;
+    return (
+        <div style={{
+            ...style,
+            display: 'flex',
+            borderBottom: '1px solid #eee',
+            alignItems: 'center',
+            background: index % 2 ? '#fafafa' : 'white'
+        }}>
+            <div style={{ flex: 1.5, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
+            <div style={{ flex: 1, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.city}</div>
+            <div style={{ flex: 1, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.branch}</div>
+            <div style={{ width: 80, padding: '0 8px' }}>
+                <span style={{
+                    padding: '2px 6px', borderRadius: 4,
+                    fontSize: 11,
+                    background: item.status === 'ready' ? '#d1fae5' : '#ffedd5',
+                    color: item.status === 'ready' ? '#065f46' : '#9a3412'
+                }}>
+                    {item.status.toUpperCase()}
+                </span>
+            </div>
+            <div style={{ width: 80, padding: '0 8px', fontSize: 12 }}>{item.finalId || <i>-</i>}</div>
+        </div>
+    );
+};
 
 export default function BatchGeneratorModal({ customers, onClose, onSync }) {
     const [inputText, setInputText] = useState('');
@@ -14,6 +44,15 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
     const [step, setStep] = useState('input'); // input, review, processing
     const [isProcessing, setIsProcessing] = useState(false);
     const [progress, setProgress] = useState('');
+
+    // Handle Esc Key
+    useEffect(() => {
+        const handleEsc = (e) => {
+            if (e.key === 'Escape' && !isProcessing) onClose();
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [onClose, isProcessing]);
 
     // 1. Parse Input
     const parseInput = () => {
@@ -163,8 +202,8 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
     };
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content" style={{ width: '800px', maxWidth: '95vw', height: '80vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="modal-overlay" onClick={!isProcessing ? onClose : undefined}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: '800px', maxWidth: '95vw', height: '80vh', display: 'flex', flexDirection: 'column' }}>
                 <div className="modal-header">
                     <h2>Batch ID Generator</h2>
                     <button className="close-btn" onClick={onClose}><Icons.X size={20} /></button>
@@ -198,40 +237,13 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                             <div style={{ flex: 1 }}>
                                 <AutoSizer>
                                     {({ height, width }) => (
-                                        <FixedSizeList
-                                            height={height}
-                                            width={width}
+                                        <List
+                                            style={{ height, width }}
                                             itemCount={items.length}
-                                            itemSize={45}
-                                        >
-                                            {({ index, style }) => {
-                                                const item = items[index];
-                                                return (
-                                                    <div style={{
-                                                        ...style,
-                                                        display: 'flex',
-                                                        borderBottom: '1px solid #eee',
-                                                        alignItems: 'center',
-                                                        background: index % 2 ? '#fafafa' : 'white'
-                                                    }}>
-                                                        <div style={{ flex: 1.5, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
-                                                        <div style={{ flex: 1, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.city}</div>
-                                                        <div style={{ flex: 1, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.branch}</div>
-                                                        <div style={{ width: 80, padding: '0 8px' }}>
-                                                            <span style={{
-                                                                padding: '2px 6px', borderRadius: 4,
-                                                                fontSize: 11,
-                                                                background: item.status === 'ready' ? '#d1fae5' : '#ffedd5',
-                                                                color: item.status === 'ready' ? '#065f46' : '#9a3412'
-                                                            }}>
-                                                                {item.status.toUpperCase()}
-                                                            </span>
-                                                        </div>
-                                                        <div style={{ width: 80, padding: '0 8px', fontSize: 12 }}>{item.finalId || <i>-</i>}</div>
-                                                    </div>
-                                                );
-                                            }}
-                                        </FixedSizeList>
+                                            rowHeight={45}
+                                            itemProps={{ items }}
+                                            rowComponent={Row}
+                                        />
                                     )}
                                 </AutoSizer>
                             </div>

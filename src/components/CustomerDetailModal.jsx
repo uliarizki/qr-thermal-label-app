@@ -59,6 +59,15 @@ export default function CustomerDetailModal({ customer, onClose }) {
         return () => window.removeEventListener('popstate', handlePopState);
     }, [onClose]);
 
+    // Handle Esc Key
+    useEffect(() => {
+        const handleEsc = (e) => {
+            if (e.key === 'Escape' && !isEditing && !isSaving) handleManualClose();
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [isEditing, isSaving]);
+
     const handleManualClose = () => {
         onClose();
         if (window.history.state?.modal) {

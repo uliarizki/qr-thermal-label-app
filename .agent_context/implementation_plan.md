@@ -20,24 +20,24 @@
 ### Phase 1: Critical & Quick Wins ⚡
 *Target: 2-3 hours*
 
-- [ ] **Move API URL to `.env`** - Security best practice
-- [ ] **Add Online/Offline indicator** - Show status in header
-- [ ] **Block Add Customer when offline** - With clear message
-- [ ] **Session expiry** - Auto-logout after 7 days idle
-- [ ] **Fix all toast dismissal issues** - Consistent UX
+- [x] **Move API URL to `.env`** - Security best practice
+- [x] **Add Online/Offline indicator** - Show status in header
+- [x] **Block Add Customer when offline** - With clear message
+- [x] **Session expiry** - Auto-logout after 7 days idle
+- [x] **Fix all toast dismissal issues** - Consistent UX
 
 ---
 
 ### Phase 2: Performance & Scale 📈
 *Target: 3-4 hours*
 
-- [ ] **Virtualization everywhere** - ~1000 items need windowing
+- [x] **Virtualization everywhere** - ~1000 items need windowing
   - CustomerSearch ✅ (already done)
   - GuestBook attendance list (if needed later)
   - Batch Generator preview table
-- [ ] **Memoize list items** - `React.memo` on card components
-- [ ] **Lazy load heavy components** - AdminPanel, GuestBook, BatchModal
-- [ ] **Local QR generation** - Remove external API dependency
+- [x] **Memoize list items** - `React.memo` on card components
+- [x] **Lazy load heavy components** - AdminPanel, GuestBook, BatchModal
+- [x] **Local QR Generation** - Remove external API dependency
 
 ---
 
@@ -117,9 +117,8 @@
 
 ## 🚀 Immediate Next Steps
 
-When ready to start, I'll begin with **Phase 1**:
-1. Create `.env` file and move API URL
-2. Add network status hook
-3. Add offline indicator to header
-4. Block Add Customer form when offline
-5. Implement session expiry
+I am currently working on **Phase 3: UI/UX Polish**:
+1. Responsive refinements (Touch & Keyboard)
+2. Consistent modal behavior (Backdrop close)
+3. Loading states everywhere
+4. Desktop enhancements (Shortcuts)

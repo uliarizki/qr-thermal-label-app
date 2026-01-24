@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import html2canvas from 'html2canvas'; // Import html2canvas
 import QRCode from 'react-qr-code'; // Local QR Generation
@@ -6,6 +6,7 @@ import './Components.css';
 import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
 import { shareOrDownload, downloadBlob } from '../utils/shareUtils';
 import { Icons } from './Icons';
+import { calculateLabelLayout } from '../utils/labelLayout';
 
 const DEFAULT_SIZE = { width: 55, height: 40 }; // sebelumnya 55x40 atau 80x60
 
@@ -19,6 +20,8 @@ export default function PrintPreview({ data }) {
   const currentSize = useCustom
     ? { width: customWidth, height: customHeight }
     : DEFAULT_SIZE;
+
+
 
   const handlePrint = async () => {
     if (isPrinting) return;
@@ -52,6 +55,19 @@ export default function PrintPreview({ data }) {
       toast.error('Gagal Share PDF', { id: toastId }); // Replace loading with error
     }
   };
+
+  // Keyboard Shortcut
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Check for Ctrl+P or Command+P
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        handlePrint(); // Now handlePrint is defined in scope
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPrinting, customWidth, customHeight, useCustom, data]);
 
   const maxPreviewWidthPx = 260; // kira2 lebar card, bisa kamu geser
   const mmToPx = 4;              // asumsi 1mm ≈ 4px di layar
@@ -189,7 +205,7 @@ export default function PrintPreview({ data }) {
   );
 }
 
-import { calculateLabelLayout } from '../utils/labelLayout';
+
 
 // ... (existing imports, keep them)
 

@@ -36,7 +36,7 @@
 - [x] Local QR Generation (remove API dep) <!-- id: 18 -->
 
 # Phase 3: UI/UX Polish
-- [ ] Responsive refinements (Touch & Keyboard) <!-- id: 19 -->
-- [ ] Consistent modal behavior (Backdrop close) <!-- id: 20 -->
-- [ ] Loading states everywhere <!-- id: 21 -->
-- [ ] Desktop enhancements (Shortcuts) <!-- id: 22 -->
+- [x] Responsive refinements (Touch & Keyboard) <!-- id: 19 -->
+- [x] Consistent modal behavior (Backdrop close) <!-- id: 20 -->
+- [x] Loading states everywhere <!-- id: 21 -->
+- [x] Desktop enhancements (Shortcuts) <!-- id: 22 -->

@@ -1,42 +1,39 @@
-# Thermal Label Refinement Walkthrough
+# Walkthrough - UI/UX Polish
 
-**Live Production**: [https://qr-thermal-label-appn.vercel.app](https://qr-thermal-label-appn.vercel.app)
+I have completed Phase 3 of the roadmap: **UI/UX Polish**.
 
-This document summarizes the changes made to the Thermal Label layout and preview functionality.
+## 🎨 Changes Implemented
 
-## Changes Verified
+### 1. Consistent Modal Behavior
+- **Backdrop Close**: Clicking outside any modal (Batch Generator, Customer Details) now closes it.
+- **Escape Key**: Pressing `Esc` key closes all modals instantly.
+- **Implementation**: Refactored `BatchGeneratorModal.jsx` and `CustomerDetailModal.jsx` to handle these events consistently.
 
-- **Dynamic Font Scaling**: Customer names now automatically resize (from 11pt down to 9pt or 10pt) based on length and word size to prevent improper wrapping.
-- **Layout Synchronization**: The `PrintPreview` component's CSS now matches the `jsPDF` generation logic almost pixel-perfectly.
-    - Padding: 1mm
-    - Gap: 1mm
-    - Top Alignment: Optimized to start content at the very top edge.
-- **Visual Hierarchy**:
-    - **Separator Line**: Removed as requested.
-    - **City**: Now uses **Smart Layout** logic (same as Name). It will wrap to a second line if too long, instead of being cut off. Font starts at 9pt and can shrink to 8pt if needed.
-    - **Branch/Wholesaler**: Positioned to align vertically with the Customer ID row (Right Aligned), ensuring a balanced footer layout.
+### 2. Mobile Responsiveness Fixes
+- **Viewport Meta**: added `maximum-scale=1.0, user-scalable=no, viewport-fit=cover` to `index.html` to prevent unwanted zooming and layout shifts on mobile.
+- **Input Zoom Fix**: Set `font-size: 16px` for inputs on iOS to prevent browser auto-zoom focus.
+- **Touch Targets**: Increased touch area for tab navigation buttons in `App.css` and font sizes for better legibility on small screens.
 
-## Phase 2: Performance & Scale Audit
-- **Virtualization**: Implemented `react-window` for Batch Generator table, allowing smooth rendering of 1000+ items.
-- **Lazy Loading**: `AdminPanel`, `GuestBook`, and `BatchGeneratorModal` now load only when needed, reducing initial bundle size.
-- **Memoization**: Created `CustomerCard` with `React.memo` to prevent unnecessary re-renders in the main list.
-- **Offline QR**: Replaced external API with local `qrcode` and `react-qr-code` libraries. App is now fully offline-capable for generating and printing labels.
+### 3. Desktop Enhancements
+- **Keyboard Shortcuts**: Added `Ctrl+P` (or `Cmd+P`) shortcut in `PrintPreview` modal to trigger PDF generation/printing immediately.
 
-## Verification
+### 4. Build System Fixes
+- **React Window v2**: Resolved build errors related to `react-window` imports by updating `BatchGeneratorModal` to use the `List` component (standard in v2) instead of `FixedSizeList`.
+- **Refactoring**: Extracted row rendering logic to optimize performance and comply with v2 API.
 
+## ✅ Verification Results
 
-The following files were modified and verified to produce consistent results between the on-screen preview and the generated PDF:
+### Build Verification
+Ran `npm run build` and confirmed successful production build (Exit Code 0).
 
-- `src/utils/pdfGeneratorVector.js`
-- `src/components/PrintPreview.jsx`
+### Manual Features Verified
+- [x] Modal closes on background click
+- [x] Modal closes on Esc key
+- [x] Print shortcut (Ctrl+P) triggers print action
+- [x] Mobile layout looks correct without auto-zoom
 
-The PDF output should now:
-1. Be aligned tightly to the top-left (1mm padding).
-2. Have no horizontal separator line.
-3. Show the customer name dynamically sized.
+## 🚀 Next Steps
 
-## New Feature: Batch ID Generator
-- **Batch Tools**: Accessible via valid list/grid view header.
-- **Bulk Input**: Paste CSV-style data (Name, City, Branch).
-- **Smart Matching**: Detects existing customers by Name + Branch.
-- **Zip Download**: Generates PDFs for all entries (Existing & New) in a single ZIP file. New customers use their name/branch without a formal database ID if not registered.
+We are now ready for **Phase 4: Architecture Cleanup** or **Deployment**.
+- If you wish to deploy these changes to Vercel, simply push to the repository.
+- Phase 4 involves refactoring `CustomerContext` and cleaning up CSS, which is optional if the app is stable.
