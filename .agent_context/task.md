@@ -54,3 +54,10 @@
 - [x] Implement "Smart Format Detection" (Tab/Excel vs Comma) <!-- id: 31 -->
 - [x] Fix Vite/React-Window Interop Issues <!-- id: 32 -->
 - [x] Test Large Batch Download (Ready for Manual Verification - See `VERIFICATION_GUIDE.md`)
+
+# Phase 6: Final Stabilization & Audit (Current)
+- [x] Audit Error Handling (ErrorBoundary content) <!-- id: 33 -->
+- [x] Verify Offline QR Logic (pdfGeneratorVector.js) <!-- id: 34 -->
+- [x] Add Linting Script & Run Audit (Added `npm run check`) <!-- id: 35 -->
+- [x] Verify Offline/Online State Logic (App.jsx & NetworkHook) <!-- id: 36 -->
+- [x] Final Code Cleanup (Removed duplicate `src/contexts`) <!-- id: 37 -->

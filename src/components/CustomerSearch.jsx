@@ -179,7 +179,7 @@ export default function CustomerSearch({
 
       {/* View Controls & Tools */}
       <div className="view-controls" style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between' }}>
-        <div>
+        <div className="view-toggles">
           <button
             className={`view-btn ${activeView === 'grid' ? 'active' : ''}`}
             onClick={() => toggleView('grid')}

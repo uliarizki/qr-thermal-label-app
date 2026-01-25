@@ -1,5 +1,8 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { loginUser, logActivity } from '../utils/googleSheets';
+import { login as loginService, logout as logoutService } from '../services/authService';
+import { validateLogin } from '../schemas/validationSchemas';
+import { ApiError } from '../services/api';
+import { logActivity } from '../utils/googleSheets';
 import { toast } from 'react-hot-toast';
 
 const AuthContext = createContext(null);
@@ -42,26 +45,39 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (username, password) => {
         const toastId = toast.loading('Verifying credentials...');
+
         try {
-            const result = await loginUser(username, password);
+            // Validate credentials
+            const validatedCreds = validateLogin({ username, password });
 
-            if (result.success) {
-                const userData = result.data;
-                setUser(userData);
+            // Call auth service (with automatic retry)
+            const userData = await loginService(validatedCreds.username, validatedCreds.password);
 
-                // Store user and login timestamp
-                localStorage.setItem('qr:auth_user', JSON.stringify(userData));
-                localStorage.setItem('qr:auth_time', Date.now().toString());
+            setUser(userData);
 
-                toast.success(`Welcome back, ${userData.username}!`, { id: toastId });
-                logActivity(userData.username, 'LOGIN', { timestamp: new Date() });
-                return true;
-            } else {
-                toast.error(result.error || 'Login failed', { id: toastId });
-                return false;
+            // Store user and login timestamp
+            localStorage.setItem('qr:auth_user', JSON.stringify(userData));
+            localStorage.setItem('qr:auth_time', Date.now().toString());
+
+            toast.success(`Welcome back, ${userData.username}!`, { id: toastId });
+            logActivity(userData.username, 'LOGIN', { timestamp: new Date() });
+            return true;
+
+        } catch (error) {
+            // Handle validation errors
+            if (error.name === 'ZodError') {
+                const firstError = error.errors[0];
+                toast.error(`Validasi gagal: ${firstError.message}`, { id: toastId });
             }
-        } catch (err) {
-            toast.error('Network error during login', { id: toastId });
+            // Handle API errors
+            else if (error instanceof ApiError) {
+                toast.error(error.message || 'Login failed', { id: toastId });
+            }
+            // Handle unexpected errors
+            else {
+                toast.error('Network error during login', { id: toastId });
+                console.error('Login error:', error);
+            }
             return false;
         }
     };

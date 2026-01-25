@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { addCustomer } from '../utils/googleSheets';
+import { addCustomer } from '../services/customerService';
+import { validateCustomer } from '../schemas/validationSchemas';
+import { ApiError } from '../services/api';
 import { addHistory } from '../utils/history';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Icons } from './Icons';
@@ -19,35 +21,43 @@ export default function AddCustomer({ onAdd }) {
       return;
     }
 
-    // Validasi mandatory fields
-    if (!upperCasedData.nama.trim() || !upperCasedData.kota.trim() || !upperCasedData.cabang.trim()) {
-      toast.error('Data wajib belum lengkap!');
-      return;
-    }
-
     setLoading(true);
     const toastId = toast.loading('Menambahkan customer...');
 
     try {
-      const result = await addCustomer(upperCasedData);
+      // Validate with Zod schema
+      const validatedData = validateCustomer(upperCasedData);
 
-      if (result.success) {
-        toast.success('Customer berhasil ditambahkan!', { id: toastId });
+      // Call service layer (with automatic retry)
+      const result = await addCustomer(validatedData);
 
-        addHistory('ADD', {
-          customerId: upperCasedData.id || 'AUTO',
-          nama: upperCasedData.nama,
-          kota: upperCasedData.kota,
-          cabang: upperCasedData.cabang,
-        });
+      toast.success('Customer berhasil ditambahkan!', { id: toastId });
 
-        setFormKey(prev => prev + 1);
-        if (onAdd) onAdd(upperCasedData);
-      } else {
-        toast.error('Gagal menambahkan: ' + result.error, { id: toastId });
-      }
+      addHistory('ADD', {
+        customerId: result.id || 'AUTO',
+        nama: validatedData.nama,
+        kota: validatedData.kota,
+        cabang: validatedData.cabang,
+      });
+
+      setFormKey(prev => prev + 1);
+      if (onAdd) onAdd(result);
+
     } catch (error) {
-      toast.error('Terjadi kesalahan: ' + error.message, { id: toastId });
+      // Handle validation errors
+      if (error.name === 'ZodError') {
+        const firstError = error.errors[0];
+        toast.error(`Validasi gagal: ${firstError.message}`, { id: toastId });
+      }
+      // Handle API errors
+      else if (error instanceof ApiError) {
+        toast.error(`Gagal menambahkan: ${error.message}`, { id: toastId });
+      }
+      // Handle unexpected errors
+      else {
+        toast.error('Terjadi kesalahan: ' + error.message, { id: toastId });
+        console.error('AddCustomer error:', error);
+      }
     } finally {
       setLoading(false);
     }

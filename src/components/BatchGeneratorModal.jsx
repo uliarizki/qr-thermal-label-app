@@ -4,10 +4,8 @@ import { saveAs } from 'file-saver';
 import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
 import { addCustomer } from '../utils/googleSheets';
 import { Icons } from './Icons';
-import * as ReactWindow from 'react-window';
-const List = ReactWindow.FixedSizeList || ReactWindow.default?.FixedSizeList || ReactWindow.default;
-import * as AutoSizerPkg from 'react-virtualized-auto-sizer';
-const AutoSizer = AutoSizerPkg.default || AutoSizerPkg;
+import { List } from 'react-window';
+import AutoSizer from 'react-virtualized-auto-sizer';
 
 
 // Row Component for Virtualized List
@@ -62,7 +60,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
         if (!inputText.trim()) return;
 
         // Auto-detect format based on first few lines
-        const lines = inputText.split(/\n/);
+        const lines = inputText.split(/\r?\n/);
         const parsed = lines.map((line, idx) => {
             let parts;
 
@@ -94,7 +92,8 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
 
             // Check existence
             // Match by Name only if City/Branch are default
-            const existing = customers.find(c => {
+            const existing = customers?.find(c => {
+                if (!c?.nama) return false;
                 const nameMatch = c.nama.toLowerCase() === name.toLowerCase();
                 const cityMatch = (c.kota || '').toLowerCase() === city.toLowerCase();
 
@@ -187,32 +186,37 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
             let count = 0;
 
             for (const item of items) {
-                // Allow both 'ready' (existing) and 'new' (no ID)
-                // User requested to rely on Name+Branch uniqueness and bypass ID generation for now.
+                try {
+                    // Allow both 'ready' (existing) and 'new' (no ID)
+                    // User requested to rely on Name+Branch uniqueness and bypass ID generation for now.
 
-                const labelData = {
-                    nt: item.name,
-                    at: item.city,
-                    ws: item.branch,
-                    it: item.finalId || '', // Use empty string if no ID
-                    pt: '',
-                    raw: item.finalId || JSON.stringify({
-                        nt: item.name, at: item.city, ws: item.branch
-                    }) // Fallback QR content
-                };
+                    const labelData = {
+                        nt: item.name,
+                        at: item.city,
+                        ws: item.branch,
+                        it: item.finalId || '', // Use empty string if no ID
+                        pt: '',
+                        raw: item.finalId || JSON.stringify({
+                            nt: item.name, at: item.city, ws: item.branch
+                        }) // Fallback QR content
+                    };
 
-                const doc = await generateLabelPdfVector(labelData);
-                const pdfBlob = doc.output('blob');
+                    const doc = await generateLabelPdfVector(labelData, { width: 50, height: 30 });
+                    const pdfBlob = doc.output('blob');
 
-                const safeName = item.name.replace(/[^a-z0-9]/gi, '_');
-                const safeCity = item.city.replace(/[^a-z0-9]/gi, '_');
+                    const safeName = item.name.replace(/[^a-z0-9]/gi, '_');
+                    const safeCity = item.city.replace(/[^a-z0-9]/gi, '_');
 
-                // Filename: Name_City_ID(or 'New').pdf
-                const idPart = item.finalId ? item.finalId : 'New';
-                const filename = `${safeName}_${safeCity}_${idPart}.pdf`;
+                    // Filename: Name_City_ID(or 'New').pdf
+                    const idPart = item.finalId ? item.finalId : 'New';
+                    const filename = `${safeName}_${safeCity}_${idPart}.pdf`;
 
-                zip.file(filename, pdfBlob);
-                count++;
+                    zip.file(filename, pdfBlob);
+                    count++;
+                } catch (error) {
+                    console.error(`Failed to generate PDF for ${item.name}:`, error);
+                    // Continue with next item
+                }
             }
 
             setProgress('Compressing...');
@@ -316,12 +320,11 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                 <AutoSizer>
                                     {({ height, width }) => (
                                         <List
-                                            style={{ height, width }}
-                                            itemCount={items.length}
-                                            rowHeight={45}
-                                            itemData={items}
-                                            width={width} // AutoSizer provides width
-                                            height={height} // AutoSizer provides height
+                                            height={height || 300}
+                                            width={width || 500}
+                                            itemCount={items?.length || 0}
+                                            itemSize={45}
+                                            itemData={items || []}
                                         >
                                             {Row}
                                         </List>
