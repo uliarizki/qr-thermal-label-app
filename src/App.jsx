@@ -1,7 +1,8 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { PrinterProvider } from './context/PrinterContext'; // New Provider
+import { PrinterProvider } from './context/PrinterContext';
+import { CustomerProvider, useCustomer } from './context/CustomerContext'; // New Context
 import { useNetworkStatus } from './hooks/useNetworkStatus';
 import QRScanner from './components/QRScanner';
 import CustomerSearch from './components/CustomerSearch';
@@ -36,8 +37,19 @@ function MainApp() {
     return 'search';
   };
 
+  const {
+    customers,
+    isSyncing,
+    lastUpdated,
+    syncCustomers,
+    selectedCustomer,
+    setSelectedCustomer,
+    addCustomerLocal
+  } = useCustomer();
+
   const [activeTab, setActiveTab] = useState(getStoredTab);
-  const [scannedData, setScannedData] = useState(null);
+  const [restoredSearchQuery, setRestoredSearchQuery] = useState('');
+  const [showPrinterGuide, setShowPrinterGuide] = useState(false);
 
   // Handle Browser Back/Forward
   useEffect(() => {
@@ -60,17 +72,6 @@ function MainApp() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
-  const [customers, setCustomers] = useState(() => {
-    const cached = getCachedCustomers();
-    return cached || [];
-  });
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [globalSelectedCustomer, setGlobalSelectedCustomer] = useState(null);
-  const [restoredSearchQuery, setRestoredSearchQuery] = useState('');
-  const [showPrinterGuide, setShowPrinterGuide] = useState(false);
-
-  // ...
 
   const handleHistorySelect = (historyItem) => {
     const { action, details } = historyItem;
@@ -87,7 +88,7 @@ function MainApp() {
         skipHistoryLog: true // Flag to prevent duplicate history entry when viewing from history
       };
 
-      setGlobalSelectedCustomer(customer);
+      setSelectedCustomer(customer);
       // No navigation needed, modal pops up on top
     } else if (action === 'SEARCH') {
       // Restore search query
@@ -98,15 +99,9 @@ function MainApp() {
     }
   };
 
-  const handleGlobalSelect = (customer) => {
-    setGlobalSelectedCustomer(customer);
-  };
-
-  // ...
-
   const navigateTo = (tabName, replace = false) => {
     setActiveTab(tabName);
-    if (tabName !== 'preview') { // Don't save preview as a distinct history point usually, or maybe yes? Let's say yes for now.
+    if (tabName !== 'preview') {
       const url = new URL(window.location);
       url.hash = tabName;
       if (replace) {
@@ -117,68 +112,13 @@ function MainApp() {
     }
   };
 
-  const handleSync = async (silent = false) => {
-    // Fix: onClick passes an event object, which is truthy. 
-    // We must ensure silent is strictly boolean true to enable silent mode.
-    const isSilent = silent === true;
-
-    if (!isSilent) setIsSyncing(true);
-    const toastId = isSilent ? null : toast.loading('Syncing data...');
-
-    try {
-      // Pass forceReload=true to getCustomers to bypass cache
-      // customerService returns the data array directly or throws an error
-      const data = await getCustomers(true);
-
-      setCustomers(data || []);
-      setLastUpdated(new Date());
-
-      if (!isSilent) {
-        setIsSyncing(false);
-        if (toastId) toast.success('Data berhasil disinkronisasi!', { id: toastId });
-      }
-
-    } catch (error) {
-      console.error('Sync failed:', error);
-      if (!isSilent) {
-        setIsSyncing(false);
-        if (toastId) toast.error('Gagal sync data: ' + (error.message || 'Unknown error'), { id: toastId });
-      }
-    }
-  };
-
-  // Auto-Sync & Focus-Sync Strategy
-  useEffect(() => {
-    // 1. Auto-sync every 5 minutes
-    const intervalId = setInterval(() => {
-      if (user) { // Only sync if logged in
-        handleSync(true); // Silent sync
-      }
-    }, 5 * 60 * 1000);
-
-    // 2. Sync on Window Focus
-    const handleFocus = () => {
-      // Optional: Debounce or check last update time to prevent spam
-      if (user) {
-        handleSync(true); // Silent sync
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      clearInterval(intervalId);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [user]); // Re-attach if user changes (login/logout)
-
   const handleScan = (data) => {
     // Construct customer object from scan
     // Handle if data is already an object (from QRScanner JSON parse)
     if (typeof data === 'object' && data !== null) {
       // Check if it's the expected format {it, nt, ...}
       if (data.it || data.nt) {
-        setGlobalSelectedCustomer({
+        setSelectedCustomer({
           id: data.it || 'N/A',
           nama: data.nt || 'Unknown',
           kota: data.at || '',
@@ -199,10 +139,10 @@ function MainApp() {
     const found = customers.find(c => c.id === dataString || c.kode === dataString);
 
     if (found) {
-      setGlobalSelectedCustomer(found);
+      setSelectedCustomer(found);
     } else {
       // Create temp object for unknown/raw scan
-      setGlobalSelectedCustomer({
+      setSelectedCustomer({
         id: dataString,
         nama: 'Unknown / Raw Scan',
         kota: '-',
@@ -211,39 +151,6 @@ function MainApp() {
         kode: dataString
       });
     }
-  };
-
-  const handleAddCustomer = (newCustomer) => {
-    // 1. Sync Immediately
-    handleSync();
-
-    // 2. Open Detail Modal (View Only)
-    // Construct a standard customer object for immediate display
-    const displayCustomer = {
-      id: newCustomer.id || '',
-      nama: newCustomer.nama,
-      kota: newCustomer.kota,
-      sales: newCustomer.sales || '',
-      pabrik: newCustomer.pabrik || '',
-      cabang: newCustomer.cabang || '',
-      telp: newCustomer.telp || '',
-      // Add 'kode' representing the QR content so PrintPreview works correctly
-      kode: JSON.stringify({
-        it: newCustomer.id || '',
-        nt: newCustomer.nama,
-        at: newCustomer.kota,
-        pt: newCustomer.sales || '',
-        kp: newCustomer.pabrik || '',
-        ws: newCustomer.cabang || '',
-        np: newCustomer.telp || ''
-      })
-    };
-
-    setGlobalSelectedCustomer(displayCustomer);
-  };
-
-  const handleSelectCustomer = (customerData) => {
-    setGlobalSelectedCustomer(customerData);
   };
 
 
@@ -394,18 +301,13 @@ function MainApp() {
 
           {activeTab === 'search' && (
             <CustomerSearch
-              customers={customers}
-              onSelect={handleGlobalSelect}
-              onSync={handleSync}
-              isSyncing={isSyncing}
-              lastUpdated={lastUpdated}
               initialQuery={restoredSearchQuery}
               onScanTrigger={() => navigateTo('scan')}
             />
           )}
 
           {activeTab === 'add' && (
-            <AddCustomer onAdd={handleAddCustomer} />
+            <AddCustomer onAdd={addCustomerLocal} />
           )}
 
           {activeTab === 'event' && <GuestBook />}
@@ -416,8 +318,8 @@ function MainApp() {
         </Suspense>
 
         <CustomerDetailModal
-          customer={globalSelectedCustomer}
-          onClose={() => setGlobalSelectedCustomer(null)}
+          customer={selectedCustomer}
+          onClose={() => setSelectedCustomer(null)}
         />
 
         {/* Printer Guide Modal */}
@@ -436,9 +338,11 @@ export default function App() {
   return (
     <PrinterProvider>
       <AuthProvider>
-        <MainApp />
-        <Toaster position="top-right" />
-        <UpdatePrompt />
+        <CustomerProvider>
+          <MainApp />
+          <Toaster position="top-right" />
+          <UpdatePrompt />
+        </CustomerProvider>
       </AuthProvider>
     </PrinterProvider>
   );

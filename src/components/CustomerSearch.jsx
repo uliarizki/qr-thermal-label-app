@@ -13,15 +13,19 @@ import './CustomerSearch.css';
 
 const STORAGE_KEY = 'qr:lastSearchQuery';
 
+import { useCustomer } from '../context/CustomerContext';
+
 export default function CustomerSearch({
-  customers = [],
-  onSelect,
-  onSync,
-  isSyncing,
-  lastUpdated,
   initialQuery,
   onScanTrigger
 }) {
+  const {
+    customers,
+    setSelectedCustomer,
+    syncCustomers,
+    isSyncing,
+    lastUpdated
+  } = useCustomer();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeView, setActiveView] = useState('grid');
   const [filteredCustomers, setFilteredCustomers] = useState([]);
@@ -113,9 +117,7 @@ export default function CustomerSearch({
 
   // 6. Handle Selection
   const handleCardClick = (customer) => {
-    if (onSelect) {
-      onSelect(customer);
-    }
+    setSelectedCustomer(customer);
   };
 
   return (
@@ -159,7 +161,7 @@ export default function CustomerSearch({
         </div>
         <button
           className="sync-btn"
-          onClick={onSync}
+          onClick={() => syncCustomers(false)}
           disabled={isSyncing}
           title="Ambil data terbaru dari Google Sheets"
           style={{ display: 'flex', alignItems: 'center', gap: 6 }}
@@ -274,7 +276,7 @@ export default function CustomerSearch({
           <BatchGeneratorModal
             customers={customers}
             onClose={() => setShowBatchModal(false)}
-            onSync={onSync}
+            onSync={() => syncCustomers(false)}
           />
         </Suspense>
       )}
