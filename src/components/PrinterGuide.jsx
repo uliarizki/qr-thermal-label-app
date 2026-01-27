@@ -4,8 +4,7 @@ import './PrinterGuide.css';
 
 /**
  * PrinterGuide Component
- * A tutorial page for printer driver installation
- * Accessible from the app to help users set up their thermal printers
+ * Tutorial for printer driver installation using WinUSB (via Zadig) for WebUSB
  */
 const PrinterGuide = ({ onClose }) => {
     const [activeSection, setActiveSection] = useState('overview');
@@ -46,37 +45,38 @@ const PrinterGuide = ({ onClose }) => {
                     {activeSection === 'overview' && (
                         <div className="section">
                             <h3>Tentang Printer Thermal</h3>
-                            <p>Aplikasi ini mendukung printer thermal 58mm via <strong>Bluetooth</strong> atau <strong>USB</strong>.</p>
+                            <p>Aplikasi ini menggunakan <strong>WebUSB</strong> untuk cetak langsung ke printer thermal 58mm tanpa aplikasi tambahan.</p>
 
                             <div className="info-box">
                                 <h4>✅ Printer yang Didukung</h4>
                                 <ul>
-                                    <li>EPPOS EP-RPP02 (Bluetooth)</li>
+                                    <li>EPPOS EP-RPP02</li>
                                     <li>Printer thermal ESC/POS compatible</li>
+                                    <li>Koneksi: <strong>USB</strong> (kabel)</li>
                                     <li>Ukuran kertas: 58mm</li>
                                 </ul>
                             </div>
 
                             <div className="info-box warning">
-                                <h4>⚠️ Sebelum Mulai</h4>
+                                <h4>⚠️ Penting</h4>
                                 <ul>
-                                    <li>Pastikan printer sudah dinyalakan</li>
-                                    <li>Kertas thermal sudah terpasang</li>
-                                    <li>Bluetooth aktif (untuk koneksi Bluetooth)</li>
+                                    <li>Windows perlu install <strong>WinUSB driver</strong> (gratis)</li>
+                                    <li>Android sudah support langsung (OTG)</li>
+                                    <li>Gunakan browser <strong>Chrome</strong> atau <strong>Edge</strong></li>
                                 </ul>
                             </div>
 
-                            <h3>Dua Metode Cetak</h3>
+                            <h3>Cara Kerja</h3>
                             <div className="method-cards">
                                 <div className="method-card">
-                                    <h4>📱 Via Aplikasi Printer</h4>
-                                    <p>Gunakan aplikasi seperti <strong>RawBT</strong> untuk menerima file PDF dan mencetaknya.</p>
+                                    <h4>🔌 Direct Print (WebUSB)</h4>
+                                    <p>Klik tombol <strong>Connect</strong> di aplikasi, pilih printer, langsung cetak tanpa app tambahan.</p>
                                     <span className="badge recommended">Direkomendasikan</span>
                                 </div>
                                 <div className="method-card">
-                                    <h4>🔌 Direct Connect (WebUSB)</h4>
-                                    <p>Hubungkan langsung via USB untuk Batch Printing (Chrome Desktop).</p>
-                                    <span className="badge advanced">Advanced</span>
+                                    <h4>📄 Share PDF</h4>
+                                    <p>Download PDF lalu cetak manual via app printer (RawBT di Android).</p>
+                                    <span className="badge">Alternatif</span>
                                 </div>
                             </div>
                         </div>
@@ -84,21 +84,101 @@ const PrinterGuide = ({ onClose }) => {
 
                     {activeSection === 'android' && (
                         <div className="section">
-                            <h3>📱 Setup Printer di Android</h3>
+                            <h3>📱 Setup di Android</h3>
+
+                            <div className="info-box">
+                                <h4>✅ Kabar Baik!</h4>
+                                <p>Android sudah mendukung WebUSB secara native. Tidak perlu install driver tambahan!</p>
+                            </div>
 
                             <div className="step-list">
                                 <div className="step">
                                     <div className="step-number">1</div>
                                     <div className="step-content">
-                                        <h4>Download RawBT Print Service</h4>
-                                        <p>Aplikasi gratis untuk mencetak ke printer thermal via Bluetooth.</p>
+                                        <h4>Siapkan Kabel OTG</h4>
+                                        <p>Hubungkan printer ke HP menggunakan kabel <strong>USB OTG</strong>.</p>
+                                        <ul>
+                                            <li>Kabel OTG: USB-C atau Micro USB → USB-A</li>
+                                            <li>Colok ke port HP</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div className="step">
+                                    <div className="step-number">2</div>
+                                    <div className="step-content">
+                                        <h4>Nyalakan Printer</h4>
+                                        <p>Pastikan printer thermal dalam keadaan <strong>ON</strong> dan kertas terpasang.</p>
+                                    </div>
+                                </div>
+
+                                <div className="step">
+                                    <div className="step-number">3</div>
+                                    <div className="step-content">
+                                        <h4>Buka Aplikasi di Chrome</h4>
+                                        <p>Buka <code>qr-thermal-label-appn.vercel.app</code> di browser <strong>Chrome</strong>.</p>
+                                    </div>
+                                </div>
+
+                                <div className="step">
+                                    <div className="step-number">4</div>
+                                    <div className="step-content">
+                                        <h4>Klik Connect</h4>
+                                        <p>Di Batch Tools atau halaman cetak:</p>
+                                        <ul>
+                                            <li>Klik tombol <strong>Connect</strong></li>
+                                            <li>Pilih printer dari dialog</li>
+                                            <li>Izinkan akses USB jika diminta</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div className="step">
+                                    <div className="step-number">5</div>
+                                    <div className="step-content">
+                                        <h4>Cetak!</h4>
+                                        <p>Setelah connected, langsung cetak label dengan klik tombol Print.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="info-box">
+                                <h4>💡 Alternatif: RawBT</h4>
+                                <p>Jika WebUSB tidak bekerja, pakai app <strong>RawBT</strong> untuk cetak via Bluetooth:</p>
+                                <a
+                                    href="https://play.google.com/store/apps/details?id=ru.a402d.rawbtprinter"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="download-btn"
+                                >
+                                    📥 Download RawBT
+                                </a>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeSection === 'windows' && (
+                        <div className="section">
+                            <h3>💻 Setup di Windows</h3>
+
+                            <div className="info-box warning">
+                                <h4>⚠️ Wajib Install WinUSB Driver</h4>
+                                <p>Windows butuh driver <strong>WinUSB</strong> agar browser bisa akses printer via WebUSB. Install sekali saja menggunakan <strong>Zadig</strong>.</p>
+                            </div>
+
+                            <div className="step-list">
+                                <div className="step">
+                                    <div className="step-number">1</div>
+                                    <div className="step-content">
+                                        <h4>Download Zadig</h4>
+                                        <p>Zadig adalah tool gratis untuk install WinUSB driver.</p>
                                         <a
-                                            href="https://play.google.com/store/apps/details?id=ru.a402d.rawbtprinter"
+                                            href="https://zadig.akeo.ie/"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="download-btn"
                                         >
-                                            📥 Download di Play Store
+                                            📥 Download Zadig
                                         </a>
                                     </div>
                                 </div>
@@ -106,99 +186,18 @@ const PrinterGuide = ({ onClose }) => {
                                 <div className="step">
                                     <div className="step-number">2</div>
                                     <div className="step-content">
-                                        <h4>Pairing Bluetooth Printer</h4>
-                                        <p>Buka <strong>Settings → Bluetooth</strong> di HP Anda.</p>
-                                        <ul>
-                                            <li>Nyalakan printer thermal</li>
-                                            <li>Scan & pair perangkat baru</li>
-                                            <li>Nama biasanya: <code>RPP02</code> atau <code>Printer_XXX</code></li>
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                <div className="step">
-                                    <div className="step-number">3</div>
-                                    <div className="step-content">
-                                        <h4>Konfigurasi RawBT</h4>
-                                        <p>Buka aplikasi RawBT dan atur:</p>
-                                        <ul>
-                                            <li><strong>Connection:</strong> Bluetooth</li>
-                                            <li><strong>Printer:</strong> Pilih printer yang sudah di-pair</li>
-                                            <li><strong>Print Mode:</strong> Image Mode</li>
-                                            <li><strong>Paper Width:</strong> 58mm</li>
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                <div className="step">
-                                    <div className="step-number">4</div>
-                                    <div className="step-content">
-                                        <h4>Cetak dari Aplikasi</h4>
-                                        <p>Di aplikasi Bintang Mas:</p>
-                                        <ul>
-                                            <li>Buka detail customer</li>
-                                            <li>Tap <strong>"Share PDF"</strong></li>
-                                            <li>Pilih <strong>RawBT</strong> dari daftar share</li>
-                                            <li>PDF akan otomatis tercetak!</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeSection === 'windows' && (
-                        <div className="section">
-                            <h3>💻 Setup Printer di Windows</h3>
-
-                            <div className="step-list">
-                                <div className="step">
-                                    <div className="step-number">1</div>
-                                    <div className="step-content">
-                                        <h4>Download Driver Printer</h4>
-                                        <p>Download driver sesuai brand printer Anda:</p>
-                                        <div className="driver-links">
-                                            <a
-                                                href="https://drive.google.com/drive/folders/1Q9PxYz"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="driver-link"
-                                            >
-                                                📥 Driver EPPOS RPP02
-                                            </a>
-                                            <a
-                                                href="https://www.xprinter.com/support/list-8-1.html"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="driver-link"
-                                            >
-                                                📥 Driver XPrinter
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="step">
-                                    <div className="step-number">2</div>
-                                    <div className="step-content">
-                                        <h4>Install Driver</h4>
-                                        <ul>
-                                            <li>Extract file ZIP yang sudah didownload</li>
-                                            <li>Run <code>setup.exe</code> atau <code>install.bat</code></li>
-                                            <li>Ikuti petunjuk instalasi</li>
-                                            <li>Restart komputer jika diminta</li>
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                <div className="step">
-                                    <div className="step-number">3</div>
-                                    <div className="step-content">
                                         <h4>Hubungkan Printer</h4>
-                                        <p>Sambungkan printer ke komputer:</p>
+                                        <p>Colok printer thermal ke port USB komputer dan <strong>nyalakan</strong>.</p>
+                                    </div>
+                                </div>
+
+                                <div className="step">
+                                    <div className="step-number">3</div>
+                                    <div className="step-content">
+                                        <h4>Jalankan Zadig</h4>
                                         <ul>
-                                            <li><strong>USB:</strong> Colokkan kabel USB, Windows akan deteksi otomatis</li>
-                                            <li><strong>Bluetooth:</strong> Settings → Bluetooth → Add Device</li>
+                                            <li>Buka file <code>zadig-2.x.exe</code></li>
+                                            <li>Di menu, pilih <strong>Options → List All Devices</strong></li>
                                         </ul>
                                     </div>
                                 </div>
@@ -206,24 +205,48 @@ const PrinterGuide = ({ onClose }) => {
                                 <div className="step">
                                     <div className="step-number">4</div>
                                     <div className="step-content">
-                                        <h4>Cetak via Browser</h4>
-                                        <p>Di aplikasi Bintang Mas (Chrome):</p>
+                                        <h4>Pilih Printer</h4>
+                                        <p>Di dropdown, cari dan pilih printer Anda:</p>
                                         <ul>
-                                            <li>Klik <strong>Connect</strong> pada Batch Tools</li>
-                                            <li>Pilih printer USB dari dialog</li>
-                                            <li>Atau: Download PDF → Print via Windows</li>
+                                            <li>Biasanya bernama <code>USB Printing Support</code></li>
+                                            <li>Atau <code>POS58</code>, <code>RPP02</code>, dll</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div className="step">
+                                    <div className="step-number">5</div>
+                                    <div className="step-content">
+                                        <h4>Install WinUSB</h4>
+                                        <ul>
+                                            <li>Pastikan <strong>WinUSB</strong> terlihat di kolom driver</li>
+                                            <li>Klik tombol <strong>Replace Driver</strong> atau <strong>Install Driver</strong></li>
+                                            <li>Tunggu sampai selesai (1-2 menit)</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <div className="step">
+                                    <div className="step-number">6</div>
+                                    <div className="step-content">
+                                        <h4>Buka Chrome & Connect</h4>
+                                        <p>Setelah driver terinstall:</p>
+                                        <ul>
+                                            <li>Buka <code>qr-thermal-label-appn.vercel.app</code> di <strong>Chrome</strong></li>
+                                            <li>Klik <strong>Connect</strong></li>
+                                            <li>Pilih printer dari dialog</li>
+                                            <li>Selesai! Siap cetak</li>
                                         </ul>
                                     </div>
                                 </div>
                             </div>
 
                             <div className="info-box">
-                                <h4>💡 Tips WebUSB (Direct Print)</h4>
-                                <p>Untuk menggunakan fitur "Connect" (Direct Print):</p>
+                                <h4>💡 Tips</h4>
                                 <ul>
+                                    <li>Install driver cukup <strong>sekali saja</strong></li>
+                                    <li>Jika ganti port USB, mungkin perlu install ulang</li>
                                     <li>Gunakan browser <strong>Chrome</strong> atau <strong>Edge</strong></li>
-                                    <li>Printer harus terhubung via <strong>USB</strong></li>
-                                    <li>Tidak bisa via Bluetooth (gunakan RawBT)</li>
                                 </ul>
                             </div>
                         </div>
@@ -235,49 +258,58 @@ const PrinterGuide = ({ onClose }) => {
 
                             <div className="faq-list">
                                 <div className="faq-item">
-                                    <h4>❌ Printer tidak terdeteksi</h4>
+                                    <h4>❌ Printer tidak muncul di dialog Connect</h4>
                                     <ul>
-                                        <li>Pastikan printer <strong>menyala</strong></li>
-                                        <li>Cek kabel USB terpasang dengan benar</li>
-                                        <li>Coba port USB yang berbeda</li>
-                                        <li>Restart printer dan coba lagi</li>
+                                        <li>Pastikan printer <strong>nyala</strong> dan terhubung USB</li>
+                                        <li><strong>Windows:</strong> Sudah install WinUSB via Zadig?</li>
+                                        <li>Coba cabut-colok kabel USB</li>
+                                        <li>Restart browser Chrome</li>
                                     </ul>
                                 </div>
 
                                 <div className="faq-item">
-                                    <h4>❌ Bluetooth tidak bisa pair</h4>
+                                    <h4>❌ Zadig tidak mendeteksi printer</h4>
                                     <ul>
-                                        <li>Matikan dan nyalakan ulang Bluetooth</li>
-                                        <li>Hapus pairing lama, pair ulang</li>
-                                        <li>Jarak jangan terlalu jauh (maks 10m)</li>
-                                        <li>Cek baterai printer</li>
+                                        <li>Pastikan sudah klik <strong>Options → List All Devices</strong></li>
+                                        <li>Coba port USB yang berbeda</li>
+                                        <li>Pastikan printer dalam keadaan ON</li>
+                                    </ul>
+                                </div>
+
+                                <div className="faq-item">
+                                    <h4>❌ Connected tapi tidak bisa cetak</h4>
+                                    <ul>
+                                        <li>Cek kertas thermal terpasang dengan benar</li>
+                                        <li>Pastikan <strong>sisi kertas yang benar</strong> menghadap head</li>
+                                        <li>Coba disconnect lalu connect ulang</li>
                                     </ul>
                                 </div>
 
                                 <div className="faq-item">
                                     <h4>❌ Hasil cetak kosong / tidak jelas</h4>
                                     <ul>
-                                        <li>Kertas thermal terpasang <strong>sisi yang benar</strong></li>
-                                        <li>Bersihkan head printer dengan alkohol</li>
-                                        <li>Cek density/darkness setting di RawBT</li>
+                                        <li>Kertas thermal terpasang <strong>terbalik</strong> - balik sisi kertas</li>
+                                        <li>Head printer kotor - bersihkan dengan alkohol</li>
+                                        <li>Kertas thermal berkualitas rendah</li>
                                     </ul>
                                 </div>
 
                                 <div className="faq-item">
-                                    <h4>❌ RawBT tidak muncul di Share</h4>
+                                    <h4>❌ Android: USB tidak terdeteksi</h4>
                                     <ul>
-                                        <li>Pastikan RawBT sudah terinstall</li>
-                                        <li>Buka RawBT sekali, lalu coba share lagi</li>
-                                        <li>Clear cache HP dan coba lagi</li>
+                                        <li>Pastikan kabel OTG berfungsi (coba perangkat USB lain)</li>
+                                        <li>Beberapa HP tidak support USB OTG</li>
+                                        <li>Coba nyalakan ulang printer</li>
+                                        <li>Alternatif: Gunakan RawBT + Bluetooth</li>
                                     </ul>
                                 </div>
 
                                 <div className="faq-item">
-                                    <h4>❌ WebUSB Connect tidak berfungsi</h4>
+                                    <h4>❌ Browser tidak support WebUSB</h4>
                                     <ul>
                                         <li>Gunakan <strong>Chrome</strong> atau <strong>Edge</strong></li>
-                                        <li>WebUSB hanya untuk <strong>USB</strong>, bukan Bluetooth</li>
-                                        <li>Cek apakah driver terinstall dengan benar</li>
+                                        <li>Firefox dan Safari <strong>tidak support</strong> WebUSB</li>
+                                        <li>Pastikan browser versi terbaru</li>
                                     </ul>
                                 </div>
                             </div>
