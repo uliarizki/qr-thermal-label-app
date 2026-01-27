@@ -240,7 +240,7 @@
 /* GALLERY VIEW */
 .batch-modal .gallery-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 16px;
     padding: 16px;
     background: #f8f9fa;
@@ -258,34 +258,37 @@
 }
 
 .batch-modal .gallery-card .card-preview {
-    height: 120px;
-    background: #1e293b;
+    height: 160px;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
     position: relative;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
 }
 
 .batch-modal .gallery-card .card-preview .scaled-card {
-    transform: scale(0.4) translate(-75%, -75%);
-    transform-origin: top left;
-    position: absolute;
-    top: 50%;
-    left: 50%;
+    transform: scale(0.32);
+    transform-origin: center center;
     width: 500px;
     height: 300px;
     pointer-events: none;
+    flex-shrink: 0;
 }
 
 .batch-modal .gallery-card .card-actions {
-    padding: 10px;
+    padding: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-top: 1px solid #eee;
     gap: 8px;
+    background: white;
 }
 
 .batch-modal .gallery-card .card-name {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: #333;
     overflow: hidden;
@@ -295,8 +298,8 @@
 }
 
 .batch-modal .gallery-card .share-btn {
-    padding: 6px 12px;
-    font-size: 0.75rem;
+    padding: 8px 16px;
+    font-size: 0.8rem;
     background: #D4AF37;
     color: #000;
     border: none;
@@ -477,6 +480,15 @@
         grid-template-columns: 1fr;
         gap: 12px;
         padding: 12px;
+    }
+
+    /* Bigger card preview on mobile for better visibility */
+    .batch-modal .gallery-card .card-preview {
+        height: 180px;
+    }
+
+    .batch-modal .gallery-card .card-preview .scaled-card {
+        transform: scale(0.38);
     }
 
     /* Footer: Stack buttons */
