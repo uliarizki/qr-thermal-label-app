@@ -25,6 +25,18 @@ export async function renderLabelToCanvas(data, options = { width: 50, height: 3
     ctx.fillRect(0, 0, widthPx, heightPx);
     ctx.fillStyle = 'black';
 
+    // PADDING LOGIC (Safe Zone)
+    // Thermal printers often have 1-2mm non-printable area
+    const paddingMm = 2;
+    const paddingPx = Math.floor(paddingMm * DPMM);
+
+    // Coordinate Transform: Shift everything by paddingPx
+    ctx.translate(paddingPx, paddingPx);
+
+    // Adjust usable area for layout engine if needed (currently layout uses absolute coordinates)
+    // We will just shift the context so (0,0) in layout becomes (2mm, 2mm) in canvas
+    // This effectively adds a left/top margin.
+
     // Adapter for text measurement (Pixels instead of Points/MM)
     // We need to scale the font size from the layout engine (mm) to pixels
     const measureText = (text, fontSizePts, isBold) => {

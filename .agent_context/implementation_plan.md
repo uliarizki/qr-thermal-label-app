@@ -115,6 +115,21 @@
 
 ---
 
+## 🚀 Immediate Next Steps (Print & Logic Unification)
+
+### 1. Unify Print Logic
+- [ ] **Refactor `PrintPreview.jsx`**
+  - Remove `escPosEncoder` dependency.
+  - Implement `renderLabelToCanvas` + `canvasToRaster` (same as Batch).
+  - Add "Print Config" controls (Width/Height/Gap) to Single Print UI.
+
+### 2. Fix Alignment & Margins
+- [ ] **Refactor `printHelpers.js`**
+  - Add explicit margin support (padding) to `renderLabelToCanvas` to prevent content from touching the edge (which causes the cutoff).
+  - Ensure `0x0C` (Form Feed) is consistently applied.
+
+---
+
 ## 🚀 Immediate Next Steps
 
 I am currently working on **Phase 3: UI/UX Polish**:

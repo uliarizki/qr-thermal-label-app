@@ -8,7 +8,7 @@ import { shareOrDownload, downloadBlob } from '../utils/shareUtils';
 import { Icons } from './Icons';
 import { calculateLabelLayout } from '../utils/labelLayout';
 import { usePrinter } from '../context/PrinterContext';
-import escPosEncoder from '../utils/escPosEncoder';
+import { renderLabelToCanvas, canvasToRaster } from '../utils/printHelpers'; // Unified Render Logic
 
 const DEFAULT_SIZE = { width: 55, height: 40 }; // sebelumnya 55x40 atau 80x60
 
@@ -47,30 +47,61 @@ export default function PrintPreview({ data }) {
   }
 
 
-  const handleDirectPrint = async () => {
-    // Generate ESC/POS Commands
-    const encoder = escPosEncoder
-      .initEppos() // Use specific EPPOS/RPP02 optimization (High Density)
-      .align('center')
-      // QR Code
-      .qr(data.raw || JSON.stringify(data), 8) // Size 8
-      .newline(1)
-      // ID
-      .size(1, 1) // Medium
-      .text(data.it || data.id || '')
-      .newline(1)
-      // Name
-      .bold(true)
-      .size(0, 0) // Normal
-      .text(data.nt || data.nama || '')
-      .newline(1)
-      // City
-      .bold(false)
-      .text(data.at || data.kota || '')
-      .newline(2) // Extra space
-      .cut();
+  // Print Configuration State (Unified with Batch)
+  const [printConfig, setPrintConfig] = useState({
+    width: 50,      // mm
+    height: 30,     // mm
+    gapFeed: true   // Send Form Feed (0x0C)
+  });
 
-    await print(encoder.encode());
+  const handleDirectPrint = async () => {
+    if (!isConnected) {
+      connect();
+      return;
+    }
+
+    const toastId = toast.loading('Printing...');
+    try {
+      // 1. Prepare Data
+      // Use raw ID if possible, otherwise construct JSON
+      // Ensure specific fields match what renderLabelToCanvas expects
+      const labelData = {
+        nt: data.nt || data.nama,
+        at: data.at || data.kota,
+        ws: data.ws || data.cabang,
+        it: data.it || data.id,
+        pt: data.pt || data.sales,
+        raw: data.raw || JSON.stringify(data) // QR Content
+      };
+
+      // 2. Render to Canvas (High Res)
+      // Use configured width/height
+      const canvas = await renderLabelToCanvas(labelData, {
+        width: printConfig.width,
+        height: printConfig.height
+      });
+
+      // 3. Convert to Raster (Bytes)
+      const rasterData = canvasToRaster(canvas);
+
+      // 4. Append Form Feed (if enabled)
+      let finalData = rasterData;
+      if (printConfig.gapFeed) {
+        const feedCmd = new Uint8Array([0x0C]);
+        const combined = new Uint8Array(rasterData.length + feedCmd.length);
+        combined.set(rasterData);
+        combined.set(feedCmd, rasterData.length);
+        finalData = combined;
+      }
+
+      // 5. Send
+      await print(finalData);
+      toast.success('Sent to Printer', { id: toastId });
+
+    } catch (err) {
+      console.error(err);
+      toast.error('Print Failed: ' + err.message, { id: toastId });
+    }
   };
 
   const handleShare = async () => {
@@ -114,6 +145,48 @@ export default function PrintPreview({ data }) {
           <h3>🖨️ Print Settings</h3>
           {/* Fallback info for desktop */}
           {!navigator.share && <span style={{ fontSize: '0.8em', color: '#666' }}>Web Share not supported</span>}
+        </div>
+
+        {/* UNIFIED PRINT CONFIGURATION PANEL */}
+        <div className="print-config-panel" style={{
+          padding: '10px',
+          background: '#f1f5f9',
+          border: '1px solid #e2e8f0',
+          marginBottom: '10px',
+          borderRadius: '6px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '15px',
+          alignItems: 'center',
+          fontSize: '0.85rem'
+        }}>
+          <div style={{ fontWeight: '600', color: '#475569' }}>Config:</div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            W (mm):
+            <input
+              type="number"
+              value={printConfig.width}
+              onChange={e => setPrintConfig({ ...printConfig, width: Number(e.target.value) })}
+              style={{ width: '45px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+            />
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            H (mm):
+            <input
+              type="number"
+              value={printConfig.height}
+              onChange={e => setPrintConfig({ ...printConfig, height: Number(e.target.value) })}
+              style={{ width: '45px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+            />
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={printConfig.gapFeed}
+              onChange={e => setPrintConfig({ ...printConfig, gapFeed: e.target.checked })}
+            />
+            Gap Feed
+          </label>
         </div>
 
         <div className="size-selector">
