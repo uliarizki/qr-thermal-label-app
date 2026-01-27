@@ -19,6 +19,7 @@ import { getLastUpdate, getCachedCustomers } from './utils/googleSheets';
 import { getCustomers } from './services/customerService';
 import { Icons } from './components/Icons';
 import Skeleton from 'react-loading-skeleton'; // Import Skeleton for fallback
+import UpdatePrompt from './components/UpdatePrompt';
 import './App.css';
 
 // Main Inner Component that uses Auth Context
@@ -410,6 +411,7 @@ export default function App() {
       <AuthProvider>
         <MainApp />
         <Toaster position="top-right" />
+        <UpdatePrompt />
       </AuthProvider>
     </PrinterProvider>
   );

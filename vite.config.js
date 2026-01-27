@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt', // Show prompt when update available
       includeAssets: ['logo_brand.png'],
       manifest: {
         name: 'Bintang Mas - QR Label App',
@@ -29,7 +29,24 @@ export default defineConfig({
         ]
       },
       workbox: {
+        // Force immediate activation of new service worker
+        skipWaiting: true,
+        clientsClaim: true,
+        // Don't precache HTML - always fetch fresh
+        globIgnores: ['**/index.html'],
         runtimeCaching: [
+          {
+            // HTML pages - Network first, fall back to cache
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'pages-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 // 1 hour
+              }
+            }
+          },
           {
             urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
             handler: 'StaleWhileRevalidate',
@@ -37,7 +54,7 @@ export default defineConfig({
               cacheName: 'google-fonts-cache',
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 365 days
               },
               cacheableResponse: {
                 statuses: [0, 200]

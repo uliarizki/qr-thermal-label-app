@@ -198,11 +198,11 @@ export default function CustomerSearch({
 
         <button
           className="view-btn"
-          style={{ background: '#4f46e5', color: 'white', border: 'none' }}
+          style={{ background: 'transparent', color: '#6366f1', border: '1px solid #6366f1' }}
           onClick={() => setShowBatchModal(true)}
           title="Batch Generator Tools"
         >
-          <span>⚡ Batch Tools</span>
+          <span>⚡ Batch</span>
         </button>
       </div>
 
