@@ -11,14 +11,14 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   /* No padding/margin */
 }
 
 #root {
   max-width: 100%;
-  min-height: 100vh;
+  min-height: 100dvh;
   /* Removed Flex Centering to allow Dashboard Layout */
   display: block;
 }

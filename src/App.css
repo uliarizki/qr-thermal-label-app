@@ -40,7 +40,7 @@ body {
   /* Full Width Canvas */
   margin: 0 auto;
   background-color: white;
-  min-height: 100vh;
+  min-height: 100dvh;
   box-shadow: 0 0 50px rgba(0, 0, 0, 0.1);
 }
 
@@ -264,7 +264,7 @@ button {
 
 /* === LOGIN SCREEN === */
 .login-screen {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -427,7 +427,7 @@ textarea {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   z-index: 9999;
   pointer-events: none;
   /* Opacity 6% black fill, widely spaced, smaller text */
