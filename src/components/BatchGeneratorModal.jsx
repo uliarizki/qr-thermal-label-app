@@ -511,7 +511,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                                                 nama: item.name,
                                                                 kota: item.city,
                                                                 cabang: item.branch === '-' ? '' : item.branch,
-                                                                id: (item.finalId && !item.finalId.startsWith('{')) ? item.finalId : 'N/A'
+                                                                kode: item.finalId || 'N/A'
                                                             }}
                                                         />
                                                     </div>
@@ -580,7 +580,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                                 nama: processingItem.name,
                                                 kota: processingItem.city,
                                                 cabang: processingItem.branch === '-' ? '' : processingItem.branch,
-                                                id: (processingItem.finalId && !processingItem.finalId.startsWith('{')) ? processingItem.finalId : 'N/A'
+                                                kode: processingItem.finalId || 'N/A'
                                             }}
                                         />
                                     </div>
