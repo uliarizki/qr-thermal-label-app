@@ -13,6 +13,7 @@ import Login from './components/Login';
 // LAZY LOAD HEAVY COMPONENTS
 const AdminPanel = lazy(() => import('./components/AdminPanel'));
 const GuestBook = lazy(() => import('./components/GuestBook'));
+const PrinterGuide = lazy(() => import('./components/PrinterGuide'));
 
 import CustomerDetailModal from './components/CustomerDetailModal';
 import { getLastUpdate, getCachedCustomers } from './utils/googleSheets';
@@ -67,6 +68,7 @@ function MainApp() {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [globalSelectedCustomer, setGlobalSelectedCustomer] = useState(null);
   const [restoredSearchQuery, setRestoredSearchQuery] = useState('');
+  const [showPrinterGuide, setShowPrinterGuide] = useState(false);
 
   // ...
 
@@ -299,6 +301,24 @@ function MainApp() {
             <span>{user?.username}</span>
           </div>
           <button
+            onClick={() => setShowPrinterGuide(true)}
+            style={{
+              background: 'transparent',
+              border: '1px solid #666',
+              color: '#ccc',
+              padding: '5px 10px',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: 11,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+            title="Panduan Printer"
+          >
+            🖨️
+          </button>
+          <button
             onClick={logout}
             style={{
               background: 'transparent',
@@ -399,6 +419,13 @@ function MainApp() {
           customer={globalSelectedCustomer}
           onClose={() => setGlobalSelectedCustomer(null)}
         />
+
+        {/* Printer Guide Modal */}
+        {showPrinterGuide && (
+          <Suspense fallback={<div className="loading-screen">Loading Guide...</div>}>
+            <PrinterGuide onClose={() => setShowPrinterGuide(false)} />
+          </Suspense>
+        )}
       </main>
     </div>
   );
