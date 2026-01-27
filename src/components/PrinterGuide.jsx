@@ -16,9 +16,18 @@ const PrinterGuide = ({ onClose }) => {
         { id: 'troubleshoot', title: '🔧 Troubleshoot', icon: '🔧' },
     ];
 
+    // Handle Esc Key
+    React.useEffect(() => {
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [onClose]);
+
     return (
-        <div className="printer-guide-overlay">
-            <div className="printer-guide-modal">
+        <div className="printer-guide-overlay" onClick={onClose}>
+            <div className="printer-guide-modal" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="guide-header">
                     <h2>🖨️ Panduan Printer</h2>
