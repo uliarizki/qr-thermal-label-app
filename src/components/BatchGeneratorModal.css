@@ -258,18 +258,18 @@
 }
 
 .batch-modal .gallery-card .card-preview {
-    height: 160px;
+    height: 200px;
     background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
     position: relative;
     overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 12px;
+    padding: 8px;
 }
 
 .batch-modal .gallery-card .card-preview .scaled-card {
-    transform: scale(0.32);
+    transform: scale(0.52);
     transform-origin: center center;
     width: 500px;
     height: 300px;
@@ -484,11 +484,11 @@
 
     /* Bigger card preview on mobile for better visibility */
     .batch-modal .gallery-card .card-preview {
-        height: 180px;
+        height: 220px;
     }
 
     .batch-modal .gallery-card .card-preview .scaled-card {
-        transform: scale(0.38);
+        transform: scale(0.55);
     }
 
     /* Footer: Stack buttons */

@@ -113,19 +113,34 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                 return nameMatch;
             });
 
-            let finalId = null;
+            // Build the kode field - must be JSON format for QR standard
+            let kodeValue = null;
+            let displayId = null;
+
             if (existing) {
-                let raw = existing.kode || existing.id;
-                // Fix: Extract ID if it is a JSON string (common data corruption issue)
-                if (raw && typeof raw === 'string' && raw.trim().startsWith('{')) {
+                // Existing customer: use their kode (which should be JSON) or generate from their data
+                if (existing.kode && typeof existing.kode === 'string' && existing.kode.trim().startsWith('{')) {
+                    // Already has JSON kode - use as is
+                    kodeValue = existing.kode;
                     try {
-                        const parsedJson = JSON.parse(raw);
-                        raw = parsedJson.it || parsedJson.id || raw;
+                        const parsed = JSON.parse(existing.kode);
+                        displayId = parsed.it || existing.id;
                     } catch (e) {
-                        // Keep raw if parse fails
+                        displayId = existing.id;
                     }
+                } else {
+                    // Generate JSON from existing customer data
+                    displayId = existing.kode || existing.id;
+                    kodeValue = JSON.stringify({
+                        it: displayId,
+                        nt: existing.nama,
+                        at: existing.kota || '',
+                        pt: existing.sales || '',
+                        kp: existing.pabrik || '',
+                        ws: existing.cabang || '',
+                        np: existing.telp || ''
+                    });
                 }
-                finalId = raw;
             }
 
             return {
@@ -134,8 +149,10 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                 city: (city === '-' && existing?.kota) ? existing.kota : city,
                 branch: (branch === '-' && (existing?.cabang || existing?.pabrik)) ? (existing.cabang || existing.pabrik) : branch,
                 existingId: existing ? existing.id : null,
-                status: existing ? 'ready' : 'new', // ready, new, done, error
-                finalId,
+                existingCustomer: existing, // Store full reference for more data
+                status: existing ? 'ready' : 'new',
+                kode: kodeValue, // Full JSON for QR code
+                displayId, // Clean ID for display
                 message: existing ? 'Found existing ID' : 'Will create new ID'
             };
         }).filter(Boolean);
@@ -337,7 +354,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                 const item = items[i];
                 setProgress(`Printing ${i + 1}/${items.length}: ${item.name}...`);
 
-                const rawId = item.finalId || '';
+                const rawId = item.displayId || '';
                 // Sanitize ID: If it looks like JSON or is too long, ignore it for the text label
                 const safeId = (rawId.startsWith('{') || rawId.length > 20) ? '' : rawId;
 
@@ -511,7 +528,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                                                 nama: item.name,
                                                                 kota: item.city,
                                                                 cabang: item.branch === '-' ? '' : item.branch,
-                                                                kode: item.finalId || 'N/A'
+                                                                kode: item.kode || item.displayId || 'N/A'
                                                             }}
                                                         />
                                                     </div>
@@ -580,7 +597,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                                 nama: processingItem.name,
                                                 kota: processingItem.city,
                                                 cabang: processingItem.branch === '-' ? '' : processingItem.branch,
-                                                kode: processingItem.finalId || 'N/A'
+                                                kode: processingItem.kode || processingItem.displayId || 'N/A'
                                             }}
                                         />
                                     </div>
