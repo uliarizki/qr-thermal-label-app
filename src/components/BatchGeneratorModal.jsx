@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
-import { renderLabelToCanvas, canvasToRaster } from '../utils/printHelpers'; // New Import
+import { renderLabelToCanvas, canvasToRaster } from '../utils/printHelpers';
 import { addCustomer } from '../utils/googleSheets';
 import { Icons } from './Icons';
-
-import { usePrinter } from '../context/PrinterContext'; // New Import
+import { usePrinter } from '../context/PrinterContext';
 import html2canvas from 'html2canvas';
 import DigitalCard from './DigitalCard';
+import './BatchGeneratorModal.css';
 
 
 // Row Component for Virtualized List
@@ -377,65 +377,58 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
             setIsProcessing(false);
         }
     };
-
-
-
-
-
     return (
         <div className="modal-overlay" onClick={!isProcessing ? onClose : undefined}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: '800px', maxWidth: '95vw', height: '80vh', display: 'flex', flexDirection: 'column' }}>
+            <div className="modal-content batch-modal" onClick={e => e.stopPropagation()}>
+                {/* HEADER */}
                 <div className="modal-header">
                     <h2>Batch ID Generator</h2>
-                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
-                        {/* Printer Status Badge */}
-                        <div onClick={connect} style={{
-                            cursor: 'pointer',
-                            padding: '4px 8px',
-                            borderRadius: 4,
-                            fontSize: 12,
-                            background: isConnected ? '#dcfce7' : '#fee2e2',
-                            color: isConnected ? '#166534' : '#991b1b',
-                            display: 'flex', alignItems: 'center', gap: 5,
-                            border: '1px solid',
-                            borderColor: isConnected ? '#bbf7d0' : '#fecaca'
-                        }}>
+                    <div className="header-actions">
+                        <div
+                            onClick={connect}
+                            className={`printer-badge ${isConnected ? 'connected' : 'disconnected'}`}
+                        >
                             {isConnected ? <Icons.Print size={14} /> : <Icons.AlertTriangle size={14} />}
-                            {isConnected ? 'Printer Ready' : 'Connect Printer'}
+                            <span>{isConnected ? 'Printer Ready' : 'Connect'}</span>
                         </div>
                         <button className="close-btn" onClick={onClose}><Icons.X size={20} /></button>
                     </div>
                 </div>
 
-                <div className="modal-body" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 20 }}>
+                {/* BODY */}
+                <div className="modal-body">
+                    {/* INPUT STEP */}
                     {step === 'input' && (
-                        <>
-                            <div style={{ marginBottom: 15, display: 'flex', gap: 15, alignItems: 'center' }}>
-                                <span style={{ fontWeight: 'bold' }}>Mode:</span>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                        <div className="input-step">
+                            <div className="mode-selector">
+                                <span style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>Mode:</span>
+                                <label>
                                     <input type="radio" checked={inputMode === 'auto'} onChange={() => setInputMode('auto')} />
                                     🤖 Auto
                                 </label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                                <label>
                                     <input type="radio" checked={inputMode === 'excel'} onChange={() => setInputMode('excel')} />
-                                    📊 Excel (Tab)
+                                    📊 Excel
                                 </label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                                <label>
                                     <input type="radio" checked={inputMode === 'csv'} onChange={() => setInputMode('csv')} />
-                                    📝 Manual (Comma)
+                                    📝 CSV
                                 </label>
                             </div>
 
-                            <p style={{ marginBottom: 10 }}>Paste data. Format: <b>Name</b> (Min) or <b>Name, City, Branch</b></p>
+                            <p style={{ marginBottom: 10, fontSize: '0.85rem' }}>
+                                Paste data: <b>Name</b> (min) or <b>Name, City, Branch</b>
+                            </p>
+
                             <textarea
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 placeholder={"Budi Santoso, Tegal, Pasar Pagi\nSiti Aminah, Brebes, Ketanggungan"}
-                                style={{ flex: 1, width: '100%', padding: 10, fontFamily: 'monospace' }}
                             />
+
                             {inputText.trim() && (
-                                <div style={{ fontSize: 12, marginTop: 5, color: '#666', display: 'flex', alignItems: 'center', gap: 5 }}>
-                                    <span>Format Detected:</span>
+                                <div className="format-detect">
+                                    <span>Detected:</span>
                                     {(() => {
                                         let detected = 'list';
                                         if (inputMode === 'excel') detected = 'excel';
@@ -444,112 +437,75 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                         else if (inputText.includes(',') || inputText.includes(';')) detected = 'csv';
 
                                         if (detected === 'excel') return (
-                                            <span style={{ background: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: 4, fontWeight: 'bold' }}>
-                                                📊 Excel / Spreadsheet (Tab)
+                                            <span className="format-badge" style={{ background: '#dcfce7', color: '#166534' }}>
+                                                📊 Excel (Tab)
                                             </span>
                                         );
                                         if (detected === 'csv') return (
-                                            <span style={{ background: '#fef9c3', color: '#854d0e', padding: '2px 6px', borderRadius: 4, fontWeight: 'bold' }}>
-                                                📝 CSV (Comma/Semi)
+                                            <span className="format-badge" style={{ background: '#fef9c3', color: '#854d0e' }}>
+                                                📝 CSV
                                             </span>
                                         );
                                         return (
-                                            <span style={{ background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: 4, fontWeight: 'bold' }}>
-                                                📄 Single List (Names Only)
+                                            <span className="format-badge" style={{ background: '#f1f5f9', color: '#475569' }}>
+                                                📄 Single List
                                             </span>
                                         );
                                     })()}
                                 </div>
                             )}
-                        </>
+                        </div>
                     )}
 
+                    {/* REVIEW STEP */}
                     {step === 'review' && (
-                        <div className="review-step" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-                                <h3>Review List ({items.length})</h3>
-                                <div className="toggle-view" style={{ display: 'flex', background: '#f1f5f9', padding: 4, borderRadius: 8 }}>
+                        <div className="review-step">
+                            <div className="review-header">
+                                <h3>Review ({items.length})</h3>
+                                <div className="view-toggle">
                                     <button
                                         onClick={() => setViewMode('list')}
-                                        style={{
-                                            padding: '6px 12px', border: 'none', borderRadius: 6, cursor: 'pointer',
-                                            background: viewMode === 'list' ? 'white' : 'transparent',
-                                            boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                                            fontWeight: viewMode === 'list' ? 600 : 400
-                                        }}
-                                    >List</button>
+                                        className={viewMode === 'list' ? 'active' : ''}
+                                    >📋 List</button>
                                     <button
                                         onClick={() => setViewMode('gallery')}
-                                        style={{
-                                            padding: '6px 12px', border: 'none', borderRadius: 6, cursor: 'pointer',
-                                            background: viewMode === 'gallery' ? 'white' : 'transparent',
-                                            boxShadow: viewMode === 'gallery' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                                            fontWeight: viewMode === 'gallery' ? 600 : 400
-                                        }}
-                                    >Catalog</button>
+                                        className={viewMode === 'gallery' ? 'active' : ''}
+                                    >🖼️ Catalog</button>
                                 </div>
                             </div>
 
-                            <div className="list-container" style={{ flex: 1, overflowY: 'auto', border: '1px solid #eee', borderRadius: 8 }}>
+                            <div className="list-container">
                                 {items.length === 0 ? (
-                                    <div style={{ padding: 20, textAlign: 'center', color: '#888' }}>No items to display</div>
+                                    <div style={{ padding: 20, textAlign: 'center', color: '#888' }}>No items</div>
                                 ) : viewMode === 'list' ? (
                                     /* LIST VIEW */
-                                    <div style={{ width: '100%' }}>
-                                        {/* Header */}
-                                        <div style={{ display: 'flex', fontWeight: 'bold', padding: '10px 8px', borderBottom: '2px solid #ddd', background: '#f8f9fa', position: 'sticky', top: 0, zIndex: 10 }}>
-                                            <div style={{ flex: 1.5 }}>Name</div>
-                                            <div style={{ flex: 1 }}>City</div>
-                                            <div style={{ flex: 1 }}>Branch</div>
-                                            <div style={{ width: 80 }}>Status</div>
-                                            <div style={{ width: 80 }}>ID</div>
+                                    <div>
+                                        <div className="list-header">
+                                            <div>Name</div>
+                                            <div>City</div>
+                                            <div className="branch-col">Branch</div>
+                                            <div>Status</div>
                                         </div>
-
                                         {items.map((item, index) => (
-                                            <div key={index} style={{
-                                                display: 'flex',
-                                                borderBottom: '1px solid #eee',
-                                                alignItems: 'center',
-                                                padding: '8px 0',
-                                                background: index % 2 ? '#fafafa' : 'white'
-                                            }}>
-                                                <div style={{ flex: 1.5, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
-                                                <div style={{ flex: 1, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.city}</div>
-                                                <div style={{ flex: 1, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.branch}</div>
-                                                <div style={{ width: 80, padding: '0 8px' }}>
-                                                    <span style={{
-                                                        padding: '2px 6px', borderRadius: 4,
-                                                        fontSize: 11,
-                                                        background: item.status === 'ready' ? '#d1fae5' : '#ffedd5',
-                                                        color: item.status === 'ready' ? '#065f46' : '#9a3412'
-                                                    }}>
+                                            <div key={index} className="list-row">
+                                                <div className="cell">{item.name}</div>
+                                                <div className="cell">{item.city}</div>
+                                                <div className="cell branch-col">{item.branch}</div>
+                                                <div>
+                                                    <span className={`status-badge ${item.status === 'ready' ? 'ready' : 'new'}`}>
                                                         {item.status.toUpperCase()}
                                                     </span>
                                                 </div>
-                                                <div style={{ width: 80, padding: '0 8px', fontSize: 12 }}>{item.finalId || <i>-</i>}</div>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
-                                    /* GALLERY / CATALOG VIEW */
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, padding: 20, justifyContent: 'center', background: '#f8f9fa', minHeight: '100%' }}>
+                                    /* GALLERY VIEW */
+                                    <div className="gallery-container">
                                         {items.map((item, index) => (
-                                            <div key={index} style={{
-                                                width: 240,
-                                                background: 'white',
-                                                borderRadius: 12,
-                                                overflow: 'hidden',
-                                                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-                                                display: 'flex', flexDirection: 'column'
-                                            }}>
-                                                {/* Card Preview (Visual Fake) - Scaled Down */}
-                                                <div style={{
-                                                    height: 140,
-                                                    background: '#1e293b',
-                                                    position: 'relative',
-                                                    overflow: 'hidden'
-                                                }}>
-                                                    <div style={{ transform: 'scale(0.48) translate(-52%, -52%)', transformOrigin: 'top left', position: 'absolute', top: '50%', left: '50%', width: 500, height: 300, pointerEvents: 'none' }}>
+                                            <div key={index} className="gallery-card">
+                                                <div className="card-preview">
+                                                    <div className="scaled-card">
                                                         <DigitalCard
                                                             customer={{
                                                                 nama: item.name,
@@ -560,23 +516,14 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                                         />
                                                     </div>
                                                 </div>
-
-                                                {/* Actions */}
-                                                <div style={{ padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eee' }}>
-                                                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#333', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '60%' }}>
-                                                        {item.name}
-                                                    </div>
+                                                <div className="card-actions">
+                                                    <div className="card-name">{item.name}</div>
                                                     <button
-                                                        className="primary-btn"
+                                                        className={`share-btn ${shareTarget === (item.id || item.name) ? 'sharing' : ''}`}
                                                         onClick={() => shareSingleCard(item)}
                                                         disabled={isProcessing}
-                                                        style={{
-                                                            fontSize: '0.8rem', padding: '6px 12px',
-                                                            background: shareTarget === (item.id || item.name) ? '#9333ea' : '#D4AF37',
-                                                            color: '#000', border: 'none'
-                                                        }}
                                                     >
-                                                        {shareTarget === (item.id || item.name) ? 'Sharing...' : 'Share'}
+                                                        {shareTarget === (item.id || item.name) ? '...' : 'Share'}
                                                     </button>
                                                 </div>
                                             </div>
@@ -587,39 +534,44 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                         </div>
                     )}
 
-                    {progress && <div style={{ marginTop: 10, padding: 10, background: '#f0f9ff', color: '#0369a1' }}>{progress}</div>}
+                    {progress && <div className="progress-bar">{progress}</div>}
                 </div>
 
-                <div className="modal-footer" style={{ borderTop: '1px solid #eee', padding: 20, display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+                {/* FOOTER */}
+                <div className="modal-footer">
                     {step === 'input' ? (
-                        <button className="primary-btn" onClick={parseInput}>Review Data</button>
+                        <div className="footer-actions">
+                            <button className="action-btn primary" onClick={parseInput}>
+                                <span className="icon">📋</span>
+                                <span>Review Data</span>
+                            </button>
+                        </div>
                     ) : (
                         <>
-                            <button className="secondary-btn" onClick={() => setStep('input')} disabled={isProcessing}>Back</button>
-
-                            {/* Print Button */}
-                            <div style={{ display: 'flex', gap: 10 }}>
-                                <button className="secondary-btn" onClick={generateZip} disabled={isProcessing} title="Internal Label PDF">
-                                    <Icons.Download size={16} /> PDF Labels
+                            <div className="footer-actions">
+                                <button className="action-btn secondary back-btn" onClick={() => setStep('input')} disabled={isProcessing}>
+                                    <Icons.ArrowLeft size={16} />
+                                    <span>Back</span>
                                 </button>
 
-                                <button className="primary-btn" onClick={generateIdZip} disabled={isProcessing} style={{ background: '#D4AF37', color: '#000', borderColor: '#B5952F' }} title="WhatsApp ID Cards">
-                                    <Icons.Download size={16} /> Download ID Cards (ZIP)
+                                <button className="action-btn secondary" onClick={generateZip} disabled={isProcessing}>
+                                    <Icons.Download size={18} />
+                                    <span>PDF Labels</span>
                                 </button>
 
-                                <button
-                                    className="primary-btn"
-                                    style={{ background: '#6366f1', display: 'flex', alignItems: 'center', gap: 5 }}
-                                    onClick={printBatch}
-                                    disabled={isProcessing}
-                                >
-                                    <Icons.Print size={16} />
-                                    {isConnected ? 'Print Direct' : 'Connect & Print'}
+                                <button className="action-btn primary" onClick={generateIdZip} disabled={isProcessing}>
+                                    <Icons.Download size={18} />
+                                    <span>ID Cards (ZIP)</span>
+                                </button>
+
+                                <button className="action-btn print" onClick={printBatch} disabled={isProcessing}>
+                                    <Icons.Print size={18} />
+                                    <span>{isConnected ? 'Print' : 'Connect'}</span>
                                 </button>
                             </div>
 
-                            {/* Hidden Render Area */}
-                            <div style={{ position: 'absolute', top: 0, left: -9999, opacity: 0, pointerEvents: 'none' }}>
+                            {/* Hidden Render Area for html2canvas */}
+                            <div className="hidden-render">
                                 {processingItem && (
                                     <div style={{ width: 500, height: 300 }}>
                                         <DigitalCard
@@ -637,20 +589,15 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                         </>
                     )}
                 </div>
-            </div>
 
-            {/* LOADING OVERLAY */}
-            {isProcessing && (
-                <div style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                    background: 'rgba(255,255,255,0.9)', zIndex: 9999,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
-                }}>
-                    <div className="spinner" style={{ width: 40, height: 40, border: '4px solid #eee', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                    <div style={{ marginTop: 20, fontSize: '1.1rem', fontWeight: 600, color: '#333' }}>{progress || 'Processing...'}</div>
-                    <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
-                </div>
-            )}
+                {/* LOADING OVERLAY */}
+                {isProcessing && (
+                    <div className="loading-overlay">
+                        <div className="spinner"></div>
+                        <div className="loading-text">{progress || 'Processing...'}</div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
