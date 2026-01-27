@@ -55,6 +55,14 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
     const cardRef = React.useRef(null);
     const [progress, setProgress] = useState('');
 
+    // Print Configuration State
+    const [printConfig, setPrintConfig] = useState({
+        width: 50,      // mm
+        height: 30,     // mm
+        gapFeed: true,  // Send Form Feed (0x0C) after each label
+        density: 'high' // Future use
+    });
+
     // Handle Esc Key
     useEffect(() => {
         const handleEsc = (e) => {
@@ -396,13 +404,28 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                 };
 
                 // 1. Render to Canvas
-                const canvas = await renderLabelToCanvas(labelData, { width: 50, height: 30 });
+                const canvas = await renderLabelToCanvas(labelData, {
+                    width: printConfig.width,
+                    height: printConfig.height
+                });
 
                 // 2. Convert to Raster (Bytes)
                 const rasterData = canvasToRaster(canvas);
 
-                // 3. Send to Printer
-                await print(rasterData);
+                // 3. Prepare Final Data (Append Form Feed if enabled)
+                let finalData = rasterData;
+                if (printConfig.gapFeed) {
+                    // 0x0C is standard "Next Label" / Form Feed command
+                    // Some printers prefer GS V m (Cut) but 0x0C is safer for continuous label roll gaps
+                    const feedCmd = new Uint8Array([0x0C]);
+                    const combined = new Uint8Array(rasterData.length + feedCmd.length);
+                    combined.set(rasterData);
+                    combined.set(feedCmd, rasterData.length);
+                    finalData = combined;
+                }
+
+                // 4. Send to Printer
+                await print(finalData);
 
                 // 4. Buffer Delay
                 if (i < items.length - 1) {
@@ -591,6 +614,47 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                         </div>
                     ) : (
                         <>
+                            {/* PRINT CONFIGURATION PANEL */}
+                            <div className="print-config-panel" style={{
+                                padding: '10px',
+                                background: '#f8fafc',
+                                borderTop: '1px solid #e2e8f0',
+                                marginBottom: '10px',
+                                borderRadius: '6px',
+                                display: 'flex',
+                                gap: '15px',
+                                alignItems: 'center',
+                                fontSize: '0.85rem'
+                            }}>
+                                <div style={{ fontWeight: '600', color: '#475569' }}>⚙️ Print Config:</div>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    W (mm):
+                                    <input
+                                        type="number"
+                                        value={printConfig.width}
+                                        onChange={e => setPrintConfig({ ...printConfig, width: Number(e.target.value) })}
+                                        style={{ width: '50px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                                    />
+                                </label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    H (mm):
+                                    <input
+                                        type="number"
+                                        value={printConfig.height}
+                                        onChange={e => setPrintConfig({ ...printConfig, height: Number(e.target.value) })}
+                                        style={{ width: '50px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                                    />
+                                </label>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={printConfig.gapFeed}
+                                        onChange={e => setPrintConfig({ ...printConfig, gapFeed: e.target.checked })}
+                                    />
+                                    Gap Feed (Auto-Align)
+                                </label>
+                            </div>
+
                             <div className="footer-actions">
                                 <button className="action-btn secondary back-btn" onClick={() => setStep('input')} disabled={isProcessing}>
                                     <Icons.ArrowLeft size={16} />
@@ -609,7 +673,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
 
                                 <button className="action-btn print" onClick={printBatch} disabled={isProcessing}>
                                     <Icons.Print size={18} />
-                                    <span>{isConnected ? 'Print' : 'Connect'}</span>
+                                    <span>{isConnected ? 'Print Batch' : 'Connect Printer'}</span>
                                 </button>
                             </div>
 
