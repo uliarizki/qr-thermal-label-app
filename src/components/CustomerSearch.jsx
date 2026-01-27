@@ -7,6 +7,7 @@ import 'react-loading-skeleton/dist/skeleton.css';
 import { Icons } from './Icons';
 import { addHistory } from '../utils/history';
 import CustomerCard from './CustomerCard'; // MEMOIZED
+import { CustomerCardSkeleton } from './CustomerCardSkeleton'; // SKELETON
 const BatchGeneratorModal = lazy(() => import('./BatchGeneratorModal')); // LAZY LOADED
 import './CustomerSearch.css';
 
@@ -215,8 +216,10 @@ export default function CustomerSearch({
 
       {/* SKELETON LOADING */}
       {(isSyncing || isSearching) && (
-        <div style={{ marginBottom: 20 }}>
-          <Skeleton count={3} height={40} style={{ marginBottom: 10 }} />
+        <div className={`customer-list ${activeView}-view`}>
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <CustomerCardSkeleton key={idx} viewMode={activeView} />
+          ))}
         </div>
       )}
 
