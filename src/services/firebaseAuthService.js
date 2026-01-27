@@ -16,13 +16,33 @@ import { auth, db } from '../config/firebase';
 import { retryWithBackoff, ApiError } from './api';
 
 const USERS_COLLECTION = 'users';
+const EMAIL_DOMAIN = '@bintangmas.local'; // Internal email domain for username conversion
 
 /**
- * Login with email and password
+ * Convert username to email format for Firebase
+ * @param {string} usernameOrEmail - Username or email
+ * @returns {string} Email format
  */
-export async function login(email, password) {
+function toEmailFormat(usernameOrEmail) {
+    // If already contains @, assume it's an email
+    if (usernameOrEmail.includes('@')) {
+        return usernameOrEmail;
+    }
+    // Convert username to email format
+    return `${usernameOrEmail}${EMAIL_DOMAIN}`;
+}
+
+/**
+ * Login with username or email and password
+ * @param {string} usernameOrEmail - Username (e.g., 'admin') or email
+ * @param {string} password - Password
+ */
+export async function login(usernameOrEmail, password) {
     return retryWithBackoff(async () => {
         try {
+            // Convert username to email format if needed
+            const email = toEmailFormat(usernameOrEmail);
+
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
@@ -63,10 +83,16 @@ export async function login(email, password) {
 
 /**
  * Register new user (admin only)
+ * @param {string} username - Username (will be converted to email)
+ * @param {string} password - Password
+ * @param {string} role - User role ('admin' or 'user')
  */
-export async function register(email, password, username, role) {
+export async function register(username, password, role) {
     return retryWithBackoff(async () => {
         try {
+            // Convert username to email format
+            const email = toEmailFormat(username);
+
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
@@ -92,9 +118,9 @@ export async function register(email, password, username, role) {
             };
         } catch (error) {
             if (error.code === 'auth/email-already-in-use') {
-                throw new ApiError('Email sudah terdaftar', 400);
+                throw new ApiError('Username sudah terdaftar', 400);
             } else if (error.code === 'auth/weak-password') {
-                throw new ApiError('Password terlalu lemah', 400);
+                throw new ApiError('Password terlalu lemah (minimal 6 karakter)', 400);
             } else {
                 throw new ApiError('Registrasi gagal: ' + error.message, 500);
             }

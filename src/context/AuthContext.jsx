@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check local storage for session
+        // Check local storage for session (Legacy / Initial check)
         const storedUser = localStorage.getItem('qr:auth_user');
         const loginTime = localStorage.getItem('qr:auth_time');
 
@@ -30,16 +30,16 @@ export const AuthProvider = ({ children }) => {
                     console.log('Session expired, logging out...');
                     localStorage.removeItem('qr:auth_user');
                     localStorage.removeItem('qr:auth_time');
-                    toast.error('Sesi telah berakhir. Silakan login kembali.', { duration: 5000 });
+                    // Don't toast here on init to avoid spam
                 } else {
                     setUser(JSON.parse(storedUser));
                 }
             } catch (e) {
                 console.error("Invalid auth token");
                 localStorage.removeItem('qr:auth_user');
-                localStorage.removeItem('qr:auth_time');
             }
         }
+
         setLoading(false);
     }, []);
 

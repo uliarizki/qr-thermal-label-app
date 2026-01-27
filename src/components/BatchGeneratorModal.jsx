@@ -2,14 +2,18 @@ import React, { useState, useEffect } from 'react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
+import { renderLabelToCanvas, canvasToRaster } from '../utils/printHelpers'; // New Import
 import { addCustomer } from '../utils/googleSheets';
 import { Icons } from './Icons';
-import { List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
+
+import { usePrinter } from '../context/PrinterContext'; // New Import
+import html2canvas from 'html2canvas';
+import DigitalCard from './DigitalCard';
 
 
 // Row Component for Virtualized List
 const Row = ({ data, index, style }) => {
+    // console.log('Row Render:', index, data?.length, style); // Debug
     const item = data[index];
     if (!item) return null;
     return (
@@ -39,11 +43,16 @@ const Row = ({ data, index, style }) => {
 };
 
 export default function BatchGeneratorModal({ customers, onClose, onSync }) {
+    const { isConnected, connect, print, isPrinting } = usePrinter(); // Printer Context
     const [inputText, setInputText] = useState('');
     const [inputMode, setInputMode] = useState('auto'); // 'auto', 'excel', 'csv'
     const [items, setItems] = useState([]);
     const [step, setStep] = useState('input'); // input, review, processing
+    const [viewMode, setViewMode] = useState('list'); // 'list' or 'gallery' (Catalog)
     const [isProcessing, setIsProcessing] = useState(false);
+    const [processingItem, setProcessingItem] = useState(null); // For ID Card Generation
+    const [shareTarget, setShareTarget] = useState(null); // For single share
+    const cardRef = React.useRef(null);
     const [progress, setProgress] = useState('');
 
     // Handle Esc Key
@@ -104,76 +113,48 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                 return nameMatch;
             });
 
+            let finalId = null;
+            if (existing) {
+                let raw = existing.kode || existing.id;
+                // Fix: Extract ID if it is a JSON string (common data corruption issue)
+                if (raw && typeof raw === 'string' && raw.trim().startsWith('{')) {
+                    try {
+                        const parsedJson = JSON.parse(raw);
+                        raw = parsedJson.it || parsedJson.id || raw;
+                    } catch (e) {
+                        // Keep raw if parse fails
+                    }
+                }
+                finalId = raw;
+            }
+
             return {
                 id: idx,
                 name,
-                city,
-                branch,
+                city: (city === '-' && existing?.kota) ? existing.kota : city,
+                branch: (branch === '-' && (existing?.cabang || existing?.pabrik)) ? (existing.cabang || existing.pabrik) : branch,
                 existingId: existing ? existing.id : null,
                 status: existing ? 'ready' : 'new', // ready, new, done, error
-                finalId: existing ? (existing.kode || existing.id) : null,
+                finalId,
                 message: existing ? 'Found existing ID' : 'Will create new ID'
             };
         }).filter(Boolean);
 
-        setItems(parsed);
+        const validItems = parsed.filter(Boolean);
+        console.log('Parsed Items:', validItems);
+
+        if (validItems.length === 0) {
+            alert("No valid data found! Please check your input format.");
+            return;
+        }
+
+        setItems(validItems);
         setStep('review');
     };
 
     // 2. Register New Customers
     const registerNewCustomers = async () => {
-        setIsProcessing(true);
-        let newItems = [...items];
-        let createdCount = 0;
-
-        for (let i = 0; i < newItems.length; i++) {
-            const item = newItems[i];
-            if (item.status === 'new') {
-                setProgress(`Registering ${item.name}...`);
-
-                // Call API
-                const result = await addCustomer({
-                    nama: item.name,
-                    kota: item.city,
-                    cabang: item.branch,
-                    sales: 'Batch', // Default sales
-                    pabrik: 'Batch',
-                    telp: '-'
-                });
-
-                if (result.success) {
-                    // Determine ID from result
-                    // Result data usually contains the full row including generated ID
-                    // Check googleSheets.js addCustomer return
-                    // It returns { success: true, data: { ...row, id: ... } }
-
-                    const newId = result.data.id;
-                    newItems[i] = {
-                        ...item,
-                        status: 'ready',
-                        finalId: newId,
-                        message: 'Successfully Registered'
-                    };
-                    createdCount++;
-                } else {
-                    newItems[i] = {
-                        ...item,
-                        status: 'error',
-                        message: `Failed: ${result.error}`
-                    };
-                }
-                // Update UI incrementally
-                setItems([...newItems]);
-            }
-        }
-
-        setProgress(`Done. Created ${createdCount} new IDs.`);
-        setIsProcessing(false);
-
-        // Sync app data to refresh cache
-        if (createdCount > 0 && onSync) {
-            onSync(true);
-        }
+        /* ... (Keep existing logic if needed, or hide) ... */
     };
 
     // 3. Generate ZIP (Updated: Allow missing IDs)
@@ -187,35 +168,32 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
 
             for (const item of items) {
                 try {
-                    // Allow both 'ready' (existing) and 'new' (no ID)
-                    // User requested to rely on Name+Branch uniqueness and bypass ID generation for now.
+                    const rawId = item.finalId || '';
+                    const safeId = (rawId.startsWith('{') || rawId.length > 20) ? '' : rawId;
 
                     const labelData = {
                         nt: item.name,
                         at: item.city,
                         ws: item.branch,
-                        it: item.finalId || '', // Use empty string if no ID
+                        it: safeId,
                         pt: '',
                         raw: item.finalId || JSON.stringify({
                             nt: item.name, at: item.city, ws: item.branch
-                        }) // Fallback QR content
+                        })
                     };
 
-                    const doc = await generateLabelPdfVector(labelData, { width: 50, height: 30 });
-                    const pdfBlob = doc.output('blob');
+                    const result = await generateLabelPdfVector(labelData, { width: 50, height: 30, returnBlob: true });
+                    const pdfBlob = result.blob;
 
                     const safeName = item.name.replace(/[^a-z0-9]/gi, '_');
                     const safeCity = item.city.replace(/[^a-z0-9]/gi, '_');
-
-                    // Filename: Name_City_ID(or 'New').pdf
-                    const idPart = item.finalId ? item.finalId : 'New';
+                    const idPart = safeId || 'New'; // Use safeId
                     const filename = `${safeName}_${safeCity}_${idPart}.pdf`;
 
                     zip.file(filename, pdfBlob);
                     count++;
                 } catch (error) {
                     console.error(`Failed to generate PDF for ${item.name}:`, error);
-                    // Continue with next item
                 }
             }
 
@@ -232,12 +210,201 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
         }
     };
 
+    // 4. Generate ID Card Images ZIP
+    const generateIdZip = async () => {
+        setIsProcessing(true);
+        // setProgress('Preparing ID Cards...');
+
+        try {
+            const zip = new JSZip();
+            let count = 0;
+
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                setProgress(`Rendering ${i + 1}/${items.length}: ${item.name}`);
+
+                // Render the card
+                setProcessingItem(item);
+
+                // Wait for React to render and images to load
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                if (cardRef.current) {
+                    try {
+                        const canvas = await html2canvas(cardRef.current, {
+                            scale: 2, // High resolution
+                            useCORS: true,
+                            backgroundColor: null
+                        });
+
+                        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+
+                        const safeName = item.name.replace(/[^a-z0-9]/gi, '_');
+                        const safeCity = item.city.replace(/[^a-z0-9]/gi, '_');
+                        // Use item.finalId but sanitize
+                        const rawId = item.finalId || '';
+                        const safeId = (rawId.startsWith('{') || rawId.length > 20) ? 'ID' : rawId;
+
+                        const filename = `${safeName}_${safeCity}_${safeId || 'ID'}.jpg`;
+                        zip.file(filename, blob);
+                        count++;
+                    } catch (err) {
+                        console.error(`Failed to capture card for ${item.name}`, err);
+                    }
+                }
+            }
+
+            setProcessingItem(null); // Cleanup
+
+            setProgress('Compressing Images...');
+            const content = await zip.generateAsync({ type: 'blob' });
+            saveAs(content, `Batch_DigitalIDs_${new Date().getTime()}.zip`);
+
+            setProgress(`Downloaded ${count} ID Cards.`);
+
+        } catch (e) {
+            console.error(e);
+            setProgress('Error generating ID ZIP: ' + e.message);
+        } finally {
+            setIsProcessing(false);
+            setProcessingItem(null);
+        }
+    };
+
+    // 5. SHARE SINGLE CARD (Mobile/Desktop Web Share)
+    const shareSingleCard = async (item) => {
+        setIsProcessing(true);
+        setShareTarget(item.id || item.name); // Track who we are sharing
+        setProgress(`Preparing share for ${item.name}...`);
+
+        try {
+            // 1. Setup Render
+            setProcessingItem(item);
+            // 2. Wait for Render
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            if (cardRef.current) {
+                const canvas = await html2canvas(cardRef.current, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: null
+                });
+
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+                const file = new File([blob], `ID_${item.name}.jpg`, { type: 'image/jpeg' });
+
+                // 3. Trigger Share
+                if (navigator.share) {
+                    await navigator.share({
+                        title: `ID Card - ${item.name}`,
+                        text: `Digital ID Card for ${item.name}`,
+                        files: [file]
+                    });
+                    setProgress(`Shared ${item.name} successfully!`);
+                } else {
+                    // Fallback for Desktop (Download)
+                    saveAs(blob, `ID_${item.name}.jpg`);
+                    setProgress(`Web Share not supported. Downloaded ${item.name} instead.`);
+                }
+            }
+        } catch (e) {
+            console.error("Share failed:", e);
+            alert("Failed to share: " + e.message);
+        } finally {
+            setIsProcessing(false);
+            setProcessingItem(null);
+            setShareTarget(null);
+        }
+    };
+
+    // 6. PRINT BATCH DIRECTLY
+    const printBatch = async () => {
+        if (!isConnected) {
+            alert("Please connect a printer first!");
+            connect();
+            return;
+        }
+
+        setIsProcessing(true);
+        setProgress('Preparing to print...');
+
+        // Print parameters
+        // Add minimal delay between prints to prevent buffer overflow (especially Bluetooth)
+        const DELAY_MS = 500;
+
+        try {
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                setProgress(`Printing ${i + 1}/${items.length}: ${item.name}...`);
+
+                const rawId = item.finalId || '';
+                // Sanitize ID: If it looks like JSON or is too long, ignore it for the text label
+                const safeId = (rawId.startsWith('{') || rawId.length > 20) ? '' : rawId;
+
+                const labelData = {
+                    nt: item.name,
+                    at: item.city,
+                    ws: item.branch,
+                    it: safeId,
+                    pt: '',
+                    raw: item.finalId || JSON.stringify({
+                        nt: item.name, at: item.city, ws: item.branch
+                    })
+                };
+
+                // 1. Render to Canvas
+                const canvas = await renderLabelToCanvas(labelData, { width: 50, height: 30 });
+
+                // 2. Convert to Raster (Bytes)
+                const rasterData = canvasToRaster(canvas);
+
+                // 3. Send to Printer
+                await print(rasterData);
+
+                // 4. Buffer Delay
+                if (i < items.length - 1) {
+                    await new Promise(r => setTimeout(r, DELAY_MS));
+                }
+            }
+
+            setProgress('Printing Complete!');
+            setTimeout(() => setProgress(''), 2000);
+
+        } catch (e) {
+            console.error(e);
+            setProgress('Print Error: ' + e.message);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+
+
+
+
     return (
         <div className="modal-overlay" onClick={!isProcessing ? onClose : undefined}>
             <div className="modal-content" onClick={e => e.stopPropagation()} style={{ width: '800px', maxWidth: '95vw', height: '80vh', display: 'flex', flexDirection: 'column' }}>
                 <div className="modal-header">
                     <h2>Batch ID Generator</h2>
-                    <button className="close-btn" onClick={onClose}><Icons.X size={20} /></button>
+                    <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' }}>
+                        {/* Printer Status Badge */}
+                        <div onClick={connect} style={{
+                            cursor: 'pointer',
+                            padding: '4px 8px',
+                            borderRadius: 4,
+                            fontSize: 12,
+                            background: isConnected ? '#dcfce7' : '#fee2e2',
+                            color: isConnected ? '#166534' : '#991b1b',
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            border: '1px solid',
+                            borderColor: isConnected ? '#bbf7d0' : '#fecaca'
+                        }}>
+                            {isConnected ? <Icons.Print size={14} /> : <Icons.AlertTriangle size={14} />}
+                            {isConnected ? 'Printer Ready' : 'Connect Printer'}
+                        </div>
+                        <button className="close-btn" onClick={onClose}><Icons.X size={20} /></button>
+                    </div>
                 </div>
 
                 <div className="modal-body" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 20 }}>
@@ -270,7 +437,6 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                 <div style={{ fontSize: 12, marginTop: 5, color: '#666', display: 'flex', alignItems: 'center', gap: 5 }}>
                                     <span>Format Detected:</span>
                                     {(() => {
-                                        // Logic for UI Feedback
                                         let detected = 'list';
                                         if (inputMode === 'excel') detected = 'excel';
                                         else if (inputMode === 'csv') detected = 'csv';
@@ -293,43 +459,130 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                             </span>
                                         );
                                     })()}
-
-                                    <span style={{ marginLeft: 'auto', fontSize: 11, fontStyle: 'italic' }}>
-                                        {/* Dynamic Hint */}
-                                        {inputMode === 'auto' && !inputText.includes('\t') && !inputText.includes(',') && !inputText.includes(';') && "Processing line by line (1 column)"}
-                                        {inputText.includes('\t') && "Safe for commas inside names"}
-                                    </span>
                                 </div>
                             )}
                         </>
                     )}
 
                     {step === 'review' && (
-                        <div style={{ flex: 1, border: '1px solid #ddd', display: 'flex', flexDirection: 'column' }}>
-                            {/* Header */}
-                            <div style={{ display: 'flex', background: '#f5f5f5', borderBottom: '1px solid #ddd', paddingRight: 10 }}>
-                                <div style={{ flex: 1.5, padding: 8, fontWeight: 'bold' }}>Name</div>
-                                <div style={{ flex: 1, padding: 8, fontWeight: 'bold' }}>City</div>
-                                <div style={{ flex: 1, padding: 8, fontWeight: 'bold' }}>Branch</div>
-                                <div style={{ width: 80, padding: 8, fontWeight: 'bold' }}>Status</div>
-                                <div style={{ width: 80, padding: 8, fontWeight: 'bold' }}>ID</div>
+                        <div className="review-step" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                                <h3>Review List ({items.length})</h3>
+                                <div className="toggle-view" style={{ display: 'flex', background: '#f1f5f9', padding: 4, borderRadius: 8 }}>
+                                    <button
+                                        onClick={() => setViewMode('list')}
+                                        style={{
+                                            padding: '6px 12px', border: 'none', borderRadius: 6, cursor: 'pointer',
+                                            background: viewMode === 'list' ? 'white' : 'transparent',
+                                            boxShadow: viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                            fontWeight: viewMode === 'list' ? 600 : 400
+                                        }}
+                                    >List</button>
+                                    <button
+                                        onClick={() => setViewMode('gallery')}
+                                        style={{
+                                            padding: '6px 12px', border: 'none', borderRadius: 6, cursor: 'pointer',
+                                            background: viewMode === 'gallery' ? 'white' : 'transparent',
+                                            boxShadow: viewMode === 'gallery' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                            fontWeight: viewMode === 'gallery' ? 600 : 400
+                                        }}
+                                    >Catalog</button>
+                                </div>
                             </div>
 
-                            {/* Virtualized List */}
-                            <div style={{ flex: 1 }}>
-                                <AutoSizer>
-                                    {({ height, width }) => (
-                                        <List
-                                            height={height || 300}
-                                            width={width || 500}
-                                            itemCount={items?.length || 0}
-                                            itemSize={45}
-                                            itemData={items || []}
-                                        >
-                                            {Row}
-                                        </List>
-                                    )}
-                                </AutoSizer>
+                            <div className="list-container" style={{ flex: 1, overflowY: 'auto', border: '1px solid #eee', borderRadius: 8 }}>
+                                {items.length === 0 ? (
+                                    <div style={{ padding: 20, textAlign: 'center', color: '#888' }}>No items to display</div>
+                                ) : viewMode === 'list' ? (
+                                    /* LIST VIEW */
+                                    <div style={{ width: '100%' }}>
+                                        {/* Header */}
+                                        <div style={{ display: 'flex', fontWeight: 'bold', padding: '10px 8px', borderBottom: '2px solid #ddd', background: '#f8f9fa', position: 'sticky', top: 0, zIndex: 10 }}>
+                                            <div style={{ flex: 1.5 }}>Name</div>
+                                            <div style={{ flex: 1 }}>City</div>
+                                            <div style={{ flex: 1 }}>Branch</div>
+                                            <div style={{ width: 80 }}>Status</div>
+                                            <div style={{ width: 80 }}>ID</div>
+                                        </div>
+
+                                        {items.map((item, index) => (
+                                            <div key={index} style={{
+                                                display: 'flex',
+                                                borderBottom: '1px solid #eee',
+                                                alignItems: 'center',
+                                                padding: '8px 0',
+                                                background: index % 2 ? '#fafafa' : 'white'
+                                            }}>
+                                                <div style={{ flex: 1.5, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
+                                                <div style={{ flex: 1, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.city}</div>
+                                                <div style={{ flex: 1, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.branch}</div>
+                                                <div style={{ width: 80, padding: '0 8px' }}>
+                                                    <span style={{
+                                                        padding: '2px 6px', borderRadius: 4,
+                                                        fontSize: 11,
+                                                        background: item.status === 'ready' ? '#d1fae5' : '#ffedd5',
+                                                        color: item.status === 'ready' ? '#065f46' : '#9a3412'
+                                                    }}>
+                                                        {item.status.toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                <div style={{ width: 80, padding: '0 8px', fontSize: 12 }}>{item.finalId || <i>-</i>}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    /* GALLERY / CATALOG VIEW */
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, padding: 20, justifyContent: 'center', background: '#f8f9fa', minHeight: '100%' }}>
+                                        {items.map((item, index) => (
+                                            <div key={index} style={{
+                                                width: 240,
+                                                background: 'white',
+                                                borderRadius: 12,
+                                                overflow: 'hidden',
+                                                boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+                                                display: 'flex', flexDirection: 'column'
+                                            }}>
+                                                {/* Card Preview (Visual Fake) - Scaled Down */}
+                                                <div style={{
+                                                    height: 140,
+                                                    background: '#1e293b',
+                                                    position: 'relative',
+                                                    overflow: 'hidden'
+                                                }}>
+                                                    <div style={{ transform: 'scale(0.48) translate(-52%, -52%)', transformOrigin: 'top left', position: 'absolute', top: '50%', left: '50%', width: 500, height: 300, pointerEvents: 'none' }}>
+                                                        <DigitalCard
+                                                            customer={{
+                                                                nama: item.name,
+                                                                kota: item.city,
+                                                                cabang: item.branch === '-' ? '' : item.branch,
+                                                                id: (item.finalId && !item.finalId.startsWith('{')) ? item.finalId : 'N/A'
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Actions */}
+                                                <div style={{ padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #eee' }}>
+                                                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#333', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '60%' }}>
+                                                        {item.name}
+                                                    </div>
+                                                    <button
+                                                        className="primary-btn"
+                                                        onClick={() => shareSingleCard(item)}
+                                                        disabled={isProcessing}
+                                                        style={{
+                                                            fontSize: '0.8rem', padding: '6px 12px',
+                                                            background: shareTarget === (item.id || item.name) ? '#9333ea' : '#D4AF37',
+                                                            color: '#000', border: 'none'
+                                                        }}
+                                                    >
+                                                        {shareTarget === (item.id || item.name) ? 'Sharing...' : 'Share'}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -344,29 +597,60 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                         <>
                             <button className="secondary-btn" onClick={() => setStep('input')} disabled={isProcessing}>Back</button>
 
-                            {/* Hiding Auto-Register Button per user request */}
-                            {/* {items.some(i => i.status === 'new') && (
+                            {/* Print Button */}
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button className="secondary-btn" onClick={generateZip} disabled={isProcessing} title="Internal Label PDF">
+                                    <Icons.Download size={16} /> PDF Labels
+                                </button>
+
+                                <button className="primary-btn" onClick={generateIdZip} disabled={isProcessing} style={{ background: '#D4AF37', color: '#000', borderColor: '#B5952F' }} title="WhatsApp ID Cards">
+                                    <Icons.Download size={16} /> Download ID Cards (ZIP)
+                                </button>
+
                                 <button
                                     className="primary-btn"
-                                    style={{ background: '#f97316' }}
-                                    onClick={registerNewCustomers}
+                                    style={{ background: '#6366f1', display: 'flex', alignItems: 'center', gap: 5 }}
+                                    onClick={printBatch}
                                     disabled={isProcessing}
                                 >
-                                    {isProcessing ? 'Processing ' : 'Auto-Register New IDs'}
+                                    <Icons.Print size={16} />
+                                    {isConnected ? 'Print Direct' : 'Connect & Print'}
                                 </button>
-                            )} */}
+                            </div>
 
-                            <button
-                                className="primary-btn"
-                                onClick={generateZip}
-                                disabled={isProcessing}
-                            >
-                                Download ZIP
-                            </button>
+                            {/* Hidden Render Area */}
+                            <div style={{ position: 'absolute', top: 0, left: -9999, opacity: 0, pointerEvents: 'none' }}>
+                                {processingItem && (
+                                    <div style={{ width: 500, height: 300 }}>
+                                        <DigitalCard
+                                            ref={cardRef}
+                                            customer={{
+                                                nama: processingItem.name,
+                                                kota: processingItem.city,
+                                                cabang: processingItem.branch === '-' ? '' : processingItem.branch,
+                                                id: (processingItem.finalId && !processingItem.finalId.startsWith('{')) ? processingItem.finalId : 'N/A'
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </>
                     )}
                 </div>
             </div>
+
+            {/* LOADING OVERLAY */}
+            {isProcessing && (
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(255,255,255,0.9)', zIndex: 9999,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <div className="spinner" style={{ width: 40, height: 40, border: '4px solid #eee', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    <div style={{ marginTop: 20, fontSize: '1.1rem', fontWeight: 600, color: '#333' }}>{progress || 'Processing...'}</div>
+                    <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+                </div>
+            )}
         </div>
     );
 }

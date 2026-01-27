@@ -15,7 +15,8 @@ const AdminPanel = lazy(() => import('./components/AdminPanel'));
 const GuestBook = lazy(() => import('./components/GuestBook'));
 
 import CustomerDetailModal from './components/CustomerDetailModal';
-import { getCustomers, getLastUpdate, getCachedCustomers } from './utils/googleSheets';
+import { getLastUpdate, getCachedCustomers } from './utils/googleSheets';
+import { getCustomers } from './services/customerService';
 import { Icons } from './components/Icons';
 import Skeleton from 'react-loading-skeleton'; // Import Skeleton for fallback
 import './App.css';
@@ -121,17 +122,25 @@ function MainApp() {
     if (!isSilent) setIsSyncing(true);
     const toastId = isSilent ? null : toast.loading('Syncing data...');
 
-    // Pass forceReload=true to getCustomers to bypass cache
-    const result = await getCustomers(true);
+    try {
+      // Pass forceReload=true to getCustomers to bypass cache
+      // customerService returns the data array directly or throws an error
+      const data = await getCustomers(true);
 
-    if (!isSilent) setIsSyncing(false);
-
-    if (result.success) {
-      setCustomers(result.data || []);
+      setCustomers(data || []);
       setLastUpdated(new Date());
-      if (!isSilent && toastId) toast.success('Data berhasil disinkronisasi!', { id: toastId });
-    } else {
-      if (!isSilent && toastId) toast.error('Gagal sync data: ' + result.error, { id: toastId });
+
+      if (!isSilent) {
+        setIsSyncing(false);
+        if (toastId) toast.success('Data berhasil disinkronisasi!', { id: toastId });
+      }
+
+    } catch (error) {
+      console.error('Sync failed:', error);
+      if (!isSilent) {
+        setIsSyncing(false);
+        if (toastId) toast.error('Gagal sync data: ' + (error.message || 'Unknown error'), { id: toastId });
+      }
     }
   };
 

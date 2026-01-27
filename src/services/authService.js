@@ -4,6 +4,8 @@ import {
 } from '../utils/googleSheets';
 import { retryWithBackoff, ApiError } from './api';
 
+console.log('🔐 Auth Service using: Google Sheets');
+
 /**
  * Login user with retry logic
  * @param {string} username 
@@ -61,7 +63,7 @@ export async function register(username, password, role, creatorRole) {
 /**
  * Logout user (client-side)
  */
-export function logout() {
+export async function logout() {
     // Clear local storage
     localStorage.removeItem('user');
     localStorage.removeItem('token');

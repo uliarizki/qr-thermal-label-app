@@ -5,6 +5,8 @@ import {
 } from '../utils/googleSheets';
 import { retryWithBackoff, ApiError } from './api';
 
+console.log('📊 Customer Service using: Google Sheets');
+
 /**
  * Get all customers with retry logic
  * @param {boolean} forceReload - Force reload from server

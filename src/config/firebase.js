@@ -21,15 +21,17 @@ export const db = getFirestore(app);
 
 // Enable offline persistence for Firestore
 // This allows the app to work offline and sync when back online
-enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-        // Multiple tabs open, persistence can only be enabled in one tab at a time
-        console.warn('⚠️ Firestore persistence failed: Multiple tabs open');
-    } else if (err.code === 'unimplemented') {
-        // The current browser doesn't support persistence
-        console.warn('⚠️ Firestore persistence not available in this browser');
-    }
-});
+if (import.meta.env.VITE_USE_FIREBASE === 'true') {
+    enableIndexedDbPersistence(db).catch((err) => {
+        if (err.code === 'failed-precondition') {
+            // Multiple tabs open, persistence can only be enabled in one tab at a time
+            console.warn('⚠️ Firestore persistence failed: Multiple tabs open');
+        } else if (err.code === 'unimplemented') {
+            // The current browser doesn't support persistence
+            console.warn('⚠️ Firestore persistence not available in this browser');
+        }
+    });
+}
 
 console.log('✅ Firebase initialized successfully');
 
