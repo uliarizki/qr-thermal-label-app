@@ -569,7 +569,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                                                 setItems(newItems);
                                                             }}
                                                         >
-                                                            <Icons.Trash size={14} />
+                                                            <span style={{ fontSize: '14px' }}>🗑️</span>
                                                         </button>
                                                     </div>
                                                 </div>
@@ -646,7 +646,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                         {reviewItems.map((item, index) => (
                                             <div key={index} className="list-row" style={{ background: '#fffaff' }}>
                                                 <div style={{ width: 40, textAlign: 'center' }}>
-                                                    <Icons.AlertTriangle size={14} color="#f59e0b" />
+                                                    <span style={{ fontSize: '14px' }}>⚠️</span>
                                                 </div>
                                                 <div className="cell"><b>{item.name}</b></div>
                                                 <div className="cell">{item.city}</div>
@@ -797,6 +797,6 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
