@@ -12,7 +12,7 @@
   width: 100%;
   padding: 14px;
   border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 16px;
   transition: all 0.3s;
 }
@@ -21,6 +21,7 @@
   outline: none;
   border-color: var(--primary-gold);
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
+  /* Keep generic for now or define shadow-gold-sm */
 }
 
 .sync-btn,
@@ -29,7 +30,7 @@
   background: white;
   border: 2px solid #e5e7eb;
   color: #666;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -42,6 +43,7 @@
   background: #f1f2f6;
   padding: 4px;
   border-radius: 10px;
+  /* Slight deviation ok for pill */
   display: flex;
   gap: 4px;
   border: 1px solid #e5e7eb;
@@ -51,7 +53,7 @@
 .view-toggles .view-btn {
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   color: #666;
   padding: 8px 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -69,7 +71,7 @@
 .view-toggles .view-btn.active {
   background: white;
   color: var(--premium-black);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   font-weight: 700;
   /* No jump on active */
 }
@@ -83,7 +85,7 @@
 .sync-btn:hover:not(:disabled) {
   background: #fffdf5;
   transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(212, 175, 55, 0.2);
+  box-shadow: var(--shadow-gold);
 }
 
 .sync-btn:disabled {
