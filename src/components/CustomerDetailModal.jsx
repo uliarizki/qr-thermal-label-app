@@ -1,7 +1,6 @@
 // Imports
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import html2canvas from 'html2canvas';
 
 import PrintPreview from './PrintPreview';
 import DigitalCard from './DigitalCard';
@@ -10,6 +9,7 @@ import { Icons } from './Icons';
 import { addHistory } from '../utils/history';
 import { editCustomer } from '../utils/googleSheets';
 import { shareOrDownload, downloadBlob } from '../utils/shareUtils';
+import { generateCardBlob } from '../utils/cardGenerator';
 
 export default function CustomerDetailModal({ customer, onClose }) {
     const [activeTab, setActiveTab] = useState('thermal'); // 'thermal' | 'digital'
@@ -76,34 +76,9 @@ export default function CustomerDetailModal({ customer, onClose }) {
     };
 
     // Helper to generate blob from card
-    const generateCardBlob = async () => {
+    const getCardBlob = async () => {
         if (!digitalCardRef.current) return null;
-
-        // Wait for fonts/images if needed (though usually loaded by now)
-        const elementToCapture = digitalCardRef.current;
-
-        const canvas = await html2canvas(elementToCapture, {
-            backgroundColor: null,
-            scale: 3,
-            width: 500,
-            height: 300,
-            windowWidth: 1200,
-            useCORS: true,
-            allowTaint: true,
-            logging: false,
-            onClone: (clonedDoc) => {
-                const card = clonedDoc.querySelector('.digital-card');
-                if (card) {
-                    card.style.transform = 'none';
-                    card.style.margin = '0';
-                    card.style.boxShadow = 'none';
-                    card.style.width = '500px';
-                    card.style.height = '300px';
-                }
-            }
-        });
-
-        return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        return await generateCardBlob(digitalCardRef.current);
     };
 
     const getFilename = () => {
@@ -115,7 +90,7 @@ export default function CustomerDetailModal({ customer, onClose }) {
     const handleDownloadImage = async () => {
         try {
             setIsDownloading(true);
-            const blob = await generateCardBlob();
+            const blob = await getCardBlob();
             if (!blob) throw new Error("Failed to generate blob");
 
             const filename = getFilename();
@@ -132,7 +107,7 @@ export default function CustomerDetailModal({ customer, onClose }) {
     const handleShareImage = async () => {
         try {
             setIsDownloading(true);
-            const blob = await generateCardBlob();
+            const blob = await getCardBlob();
             if (!blob) throw new Error("Failed to generate blob");
 
             const filename = getFilename();

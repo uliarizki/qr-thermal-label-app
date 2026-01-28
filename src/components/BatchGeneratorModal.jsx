@@ -6,8 +6,8 @@ import { renderLabelToCanvas, canvasToRaster } from '../utils/printHelpers';
 import { addCustomer } from '../utils/googleSheets';
 import { Icons } from './Icons';
 import { usePrinter } from '../context/PrinterContext';
-import html2canvas from 'html2canvas';
 import DigitalCard from './DigitalCard';
+import { generateCardBlob } from '../utils/cardGenerator';
 import './BatchGeneratorModal.css';
 
 
@@ -256,30 +256,9 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
 
                 if (cardRef.current) {
                     try {
-                        const canvas = await html2canvas(cardRef.current, {
-                            scale: 3, // High resolution (match normal share)
-                            width: 500,
-                            height: 300,
-                            useCORS: true,
-                            allowTaint: true,
-                            backgroundColor: null,
-                            onClone: (clonedDoc) => {
-                                const card = clonedDoc.querySelector('.digital-card');
-                                if (card) {
-                                    card.style.transform = 'none';
-                                    card.style.margin = '0';
-                                    card.style.boxShadow = 'none';
-                                    card.style.width = '500px';
-                                    card.style.height = '300px';
-                                }
-                            }
-                        });
-
-                        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-
+                        const blob = await generateCardBlob(cardRef.current);
                         const safeName = item.name.replace(/[^a-z0-9]/gi, '_');
                         const safeCity = item.city.replace(/[^a-z0-9]/gi, '_');
-                        // Use item.displayId but sanitize
                         const rawId = item.displayId || '';
                         const safeId = (rawId.startsWith('{') || rawId.length > 20) ? 'ID' : rawId;
 
@@ -322,26 +301,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
             await new Promise(resolve => setTimeout(resolve, 500));
 
             if (cardRef.current) {
-                const canvas = await html2canvas(cardRef.current, {
-                    scale: 3, // High resolution (match normal share)
-                    width: 500,
-                    height: 300,
-                    useCORS: true,
-                    allowTaint: true,
-                    backgroundColor: null,
-                    onClone: (clonedDoc) => {
-                        const card = clonedDoc.querySelector('.digital-card');
-                        if (card) {
-                            card.style.transform = 'none';
-                            card.style.margin = '0';
-                            card.style.boxShadow = 'none';
-                            card.style.width = '500px';
-                            card.style.height = '300px';
-                        }
-                    }
-                });
-
-                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                const blob = await generateCardBlob(cardRef.current);
                 const file = new File([blob], `ID_${item.name}.png`, { type: 'image/png' });
 
                 // 3. Trigger Share
