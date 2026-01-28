@@ -8,6 +8,7 @@ import { Icons } from './Icons';
 import { usePrinter } from '../context/PrinterContext';
 import DigitalCard from './DigitalCard';
 import { generateCardBlob } from '../utils/cardGenerator';
+import { useModalHistory } from '../hooks/useModalHistory';
 import './BatchGeneratorModal.css';
 
 
@@ -55,6 +56,9 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
     const cardRef = React.useRef(null);
     const [progress, setProgress] = useState('');
 
+    // History Management (Back Button Support)
+    const handleClose = useModalHistory(onClose, 'batch-generator');
+
     // Print Configuration State
     const [printConfig, setPrintConfig] = useState({
         width: 50,      // mm
@@ -63,14 +67,14 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
         density: 'high' // Future use
     });
 
-    // Handle Esc Key
+    // Handle Esc Key - Redirect to handleClose
     useEffect(() => {
         const handleEsc = (e) => {
-            if (e.key === 'Escape' && !isProcessing) onClose();
+            if (e.key === 'Escape' && !isProcessing) handleClose();
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [onClose, isProcessing]);
+    }, [handleClose, isProcessing]);
 
     // 1. Parse Input
     const parseInput = () => {
@@ -404,7 +408,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
         }
     };
     return (
-        <div className="modal-overlay" onClick={!isProcessing ? onClose : undefined}>
+        <div className="modal-overlay" onClick={!isProcessing ? handleClose : undefined}>
             <div className="modal-content batch-modal" onClick={e => e.stopPropagation()}>
                 {/* HEADER */}
                 <div className="modal-header">
@@ -417,7 +421,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                             {isConnected ? <Icons.Print size={14} /> : <Icons.AlertTriangle size={14} />}
                             <span>{isConnected ? 'Printer Ready' : 'Connect'}</span>
                         </div>
-                        <button className="close-btn" onClick={onClose}><Icons.X size={20} /></button>
+                        <button className="close-btn" onClick={handleClose}><Icons.X size={20} /></button>
                     </div>
                 </div>
 

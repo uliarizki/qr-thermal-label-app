@@ -10,6 +10,7 @@ import { addHistory } from '../utils/history';
 import { editCustomer } from '../utils/googleSheets';
 import { shareOrDownload, downloadBlob } from '../utils/shareUtils';
 import { generateCardBlob } from '../utils/cardGenerator';
+import { useModalHistory } from '../hooks/useModalHistory';
 
 export default function CustomerDetailModal({ customer, onClose }) {
     const [activeTab, setActiveTab] = useState('thermal'); // 'thermal' | 'digital'
@@ -19,45 +20,28 @@ export default function CustomerDetailModal({ customer, onClose }) {
 
     const digitalCardRef = useRef(null);
 
+    // History Management
+    const handleManualClose = useModalHistory(onClose, 'customer-detail');
+
     // Reset Edit Mode when customer changes
     useEffect(() => {
         setIsEditing(false);
     }, [customer]);
 
-    // Add history on mount
+    // Add history on mount (Log usage)
     useEffect(() => {
-        if (customer) {
-            if (!customer.skipHistoryLog) {
-                addHistory('SEARCH_SELECT', {
-                    query: customer.id,
-                    customerId: customer.id,
-                    customerName: customer.nama,
-                    kota: customer.kota,
-                    telp: customer.telp,
-                    cabang: customer.cabang || customer.pabrik,
-                    kode: customer.kode
-                });
-            }
-
-            if (!window.history.state?.modal) {
-                const currentTab = window.history.state?.tab || 'search';
-                const url = new URL(window.location);
-                url.hash = 'customer-detail';
-                window.history.pushState({ tab: currentTab, modal: true }, '', url);
-            }
+        if (customer && !customer.skipHistoryLog) {
+            addHistory('SEARCH_SELECT', {
+                query: customer.id,
+                customerId: customer.id,
+                customerName: customer.nama,
+                kota: customer.kota,
+                telp: customer.telp,
+                cabang: customer.cabang || customer.pabrik,
+                kode: customer.kode
+            });
         }
     }, [customer]);
-
-    // Handle Back Button
-    useEffect(() => {
-        const handlePopState = (event) => {
-            if (!event.state?.modal) {
-                onClose();
-            }
-        };
-        window.addEventListener('popstate', handlePopState);
-        return () => window.removeEventListener('popstate', handlePopState);
-    }, [onClose]);
 
     // Handle Esc Key
     useEffect(() => {
@@ -66,14 +50,7 @@ export default function CustomerDetailModal({ customer, onClose }) {
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [isEditing, isSaving]);
-
-    const handleManualClose = () => {
-        onClose();
-        if (window.history.state?.modal) {
-            window.history.back();
-        }
-    };
+    }, [isEditing, isSaving, handleManualClose]);
 
     // Helper to generate blob from card
     const getCardBlob = async () => {

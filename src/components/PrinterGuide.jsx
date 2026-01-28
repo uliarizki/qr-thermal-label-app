@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icons } from './Icons';
+import { useModalHistory } from '../hooks/useModalHistory';
 import './PrinterGuide.css';
 
 /**
@@ -8,6 +9,9 @@ import './PrinterGuide.css';
  */
 const PrinterGuide = ({ onClose }) => {
     const [activeSection, setActiveSection] = useState('overview');
+
+    // History Management
+    const handleClose = useModalHistory(onClose, 'printer-guide');
 
     const sections = [
         { id: 'overview', title: '📋 Overview', icon: '📋' },
@@ -19,19 +23,19 @@ const PrinterGuide = ({ onClose }) => {
     // Handle Esc Key
     React.useEffect(() => {
         const handleEsc = (e) => {
-            if (e.key === 'Escape') onClose();
+            if (e.key === 'Escape') handleClose();
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [onClose]);
+    }, [handleClose]);
 
     return (
-        <div className="printer-guide-overlay" onClick={onClose}>
+        <div className="printer-guide-overlay" onClick={handleClose}>
             <div className="printer-guide-modal" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="guide-header">
                     <h2>🖨️ Panduan Printer</h2>
-                    <button className="close-btn" onClick={onClose}>
+                    <button className="close-btn" onClick={handleClose}>
                         <Icons.X size={20} />
                     </button>
                 </div>
