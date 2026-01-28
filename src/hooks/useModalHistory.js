@@ -17,7 +17,7 @@ export const useModalHistory = (onClose, key = 'modal') => {
         // 1. Push State on Mount
         // We add a unique flag to identify this modal level
         const currentState = window.history.state || {};
-        const url = new URL(window.location);
+        // const url = new URL(window.location); // Original line, replaced by window.location directly
 
         // Add hash for visual clarity if needed, or just keep state
         // We won't change hash to avoid scrolling issues, just state
@@ -29,7 +29,7 @@ export const useModalHistory = (onClose, key = 'modal') => {
         window.history.pushState(
             { ...currentState, modal: key },
             '',
-            url
+            window.location
         );
         pushedStateRef.current = true;
 
@@ -44,7 +44,7 @@ export const useModalHistory = (onClose, key = 'modal') => {
             // Critical: If we receive a popstate, we are NO LONGER in the modal state (browser side).
             // So we just need to ensure the UI closes.
             pushedStateRef.current = false; // We consumed the state
-            onClose();
+            if (onCloseRef.current) onCloseRef.current();
         };
 
         window.addEventListener('popstate', handlePopState);
