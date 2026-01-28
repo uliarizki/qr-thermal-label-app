@@ -20,10 +20,24 @@ Object.defineProperty(window, 'matchMedia', {
 // Mock modules that make API calls
 vi.mock('./utils/googleSheets', () => ({
     getCustomers: vi.fn().mockResolvedValue({ success: true, data: [] }),
+    getCachedCustomers: vi.fn().mockReturnValue([]), // Added
     getLastUpdate: vi.fn().mockReturnValue(null),
     addCustomer: vi.fn(),
     searchCustomer: vi.fn(),
 }));
+
+vi.mock('./context/AuthContext', async (importOriginal) => {
+    const actual = await importOriginal();
+    return {
+        ...actual,
+        AuthProvider: ({ children }) => <div>{children}</div>,
+        useAuth: vi.fn().mockReturnValue({
+            user: { username: 'testuser', role: 'admin' },
+            loading: false,
+            logout: vi.fn()
+        }),
+    };
+});
 
 // Mock jsQR used in QRScanner because it might have canvas dependencies
 vi.mock('jsqr', () => ({
@@ -33,15 +47,15 @@ vi.mock('jsqr', () => ({
 describe('App', () => {
     it('renders the main title', () => {
         render(<App />);
-        const titleElement = screen.getByText(/QR Thermal Label Printer/i);
+        const titleElement = screen.getByText(/Qr Thermal Label App/i);
         expect(titleElement).toBeInTheDocument();
     });
 
     it('renders tab navigation', () => {
         render(<App />);
-        expect(screen.getByText('📱 Scan QR')).toBeInTheDocument();
-        expect(screen.getByText('🔍 Cari Customer')).toBeInTheDocument();
-        expect(screen.getByText('➕ Customer Baru')).toBeInTheDocument();
-        expect(screen.getByText('📊 History')).toBeInTheDocument();
+        expect(screen.getByText('Customer')).toBeInTheDocument();
+        expect(screen.getByText('Baru')).toBeInTheDocument();
+        expect(screen.getByText('Event')).toBeInTheDocument();
+        expect(screen.getByText('History')).toBeInTheDocument();
     });
 });
