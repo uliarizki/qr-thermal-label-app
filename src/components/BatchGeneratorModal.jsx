@@ -50,8 +50,11 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
     const { isConnected, connect, print, isPrinting } = usePrinter(); // Printer Context
     const [inputText, setInputText] = useState('');
     const [inputMode, setInputMode] = useState('auto'); // 'auto', 'excel', 'csv'
-    const [items, setItems] = useState([]);
+    const [items, setItems] = useState([]); // Ready/Approved items
+    const [reviewItems, setReviewItems] = useState([]); // Unrecognized items needing approval
     const [step, setStep] = useState('input'); // input, review, processing
+    const [tab, setTab] = useState('ready'); // 'ready', 'review'
+
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'gallery' (Catalog)
     const [isProcessing, setIsProcessing] = useState(false);
     const [processingItem, setProcessingItem] = useState(null); // For ID Card Generation
@@ -103,11 +106,6 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                     : line.split(/[,;|]/).map(s => s.trim());
             }
 
-            // Support Flexible Formats:
-            // 1. Name only
-            // 2. Name, City
-            // 3. Name, City, Branch
-
             if (parts.length === 0 || !parts[0]) return null;
 
             const name = parts[0];
@@ -115,7 +113,6 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
             const branch = parts[2] || '-';
 
             // Check existence
-            // Match by Name only if City/Branch are default
             const existing = customers?.find(c => {
                 if (!c?.nama) return false;
                 const nameMatch = c.nama.toLowerCase() === name.toLowerCase();
@@ -128,24 +125,17 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                 return nameMatch;
             });
 
-            // Build the kode field - must be JSON format for QR standard
             let kodeValue = null;
             let displayId = null;
 
             if (existing) {
-                // Existing customer: use their kode (which should be JSON) or generate from their data
+                // Match Found: Use DB Data
+                displayId = existing.kode || existing.id;
+
+                // Ensure JSON format for kode
                 if (existing.kode && typeof existing.kode === 'string' && existing.kode.trim().startsWith('{')) {
-                    // Already has JSON kode - use as is
                     kodeValue = existing.kode;
-                    try {
-                        const parsed = JSON.parse(existing.kode);
-                        displayId = parsed.it || existing.id;
-                    } catch (e) {
-                        displayId = existing.id;
-                    }
                 } else {
-                    // Generate JSON from existing customer data
-                    displayId = existing.kode || existing.id;
                     kodeValue = JSON.stringify({
                         it: displayId,
                         nt: existing.nama,
@@ -157,11 +147,10 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                     });
                 }
             } else {
-                // NEW CUSTOMER (Not in DB)
-                // Generate a self-contained JSON so the QR is still useful/scannable
+                // No Match: "New" or Unrecognized
                 displayId = 'NEW';
                 kodeValue = JSON.stringify({
-                    it: 'NEW', // Indicator for scanner that this isn't in DB yet
+                    it: 'NEW',
                     nt: name,
                     at: city !== '-' ? city : '',
                     ws: branch !== '-' ? branch : ''
@@ -174,23 +163,29 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                 city: (city === '-' && existing?.kota) ? existing.kota : city,
                 branch: (branch === '-' && (existing?.cabang || existing?.pabrik)) ? (existing.cabang || existing.pabrik) : branch,
                 existingId: existing ? existing.id : null,
-                existingCustomer: existing, // Store full reference for more data
+                existingCustomer: existing,
                 status: existing ? 'ready' : 'new',
-                kode: kodeValue, // Full JSON for QR code
-                displayId, // Clean ID for display
-                message: existing ? 'Found existing ID' : 'Will create functioning QR (Not in DB)'
+                kode: kodeValue,
+                displayId,
+                message: existing ? 'Customer found in DB' : 'Unrecognized - Review Needed'
             };
         }).filter(Boolean);
 
-        const validItems = parsed.filter(Boolean);
-        console.log('Parsed Items:', validItems);
+        const validItems = parsed.filter(i => i.status === 'ready');
+        const riskyItems = parsed.filter(i => i.status === 'new');
 
-        if (validItems.length === 0) {
-            alert("No valid data found! Please check your input format.");
+        console.log('Valid:', validItems.length, 'Risky:', riskyItems.length);
+
+        if (validItems.length === 0 && riskyItems.length === 0) {
+            alert("No valid data found!");
             return;
         }
 
         setItems(validItems);
+        setReviewItems(riskyItems);
+
+        // Default to 'review' tab if we have risky items but no ready items, otherwise 'ready'
+        setTab(validItems.length > 0 ? 'ready' : 'review');
         setStep('review');
     };
 
@@ -504,7 +499,22 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                     {step === 'review' && (
                         <div className="review-step">
                             <div className="review-header">
-                                <h3>Review ({items.length})</h3>
+                                <div className="tabs">
+                                    <button
+                                        className={`tab-btn ${tab === 'ready' ? 'active' : ''}`}
+                                        onClick={() => setTab('ready')}
+                                    >
+                                        ✅ Ready to Print ({items.length})
+                                    </button>
+                                    <button
+                                        className={`tab-btn ${tab === 'review' ? 'active' : ''} ${reviewItems.length > 0 ? 'has-items' : ''}`}
+                                        onClick={() => setTab('review')}
+                                        disabled={reviewItems.length === 0}
+                                    >
+                                        ⚠️ Needs Review ({reviewItems.length})
+                                    </button>
+                                </div>
+
                                 <div className="view-toggle">
                                     <button
                                         onClick={() => setViewMode('list')}
@@ -518,55 +528,153 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                             </div>
 
                             <div className="list-container">
-                                {items.length === 0 ? (
-                                    <div style={{ padding: 20, textAlign: 'center', color: '#888' }}>No items</div>
-                                ) : viewMode === 'list' ? (
-                                    /* LIST VIEW */
-                                    <div>
-                                        <div className="list-header">
-                                            <div>Name</div>
-                                            <div>City</div>
-                                            <div className="branch-col">Branch</div>
-                                            <div>Status</div>
+                                {tab === 'ready' ? (
+                                    /* READY ITEMS LIST */
+                                    items.length === 0 ? (
+                                        <div className="empty-state">
+                                            <div style={{ fontSize: 40 }}>🗑️</div>
+                                            <p>No items ready to print.</p>
+                                            <p style={{ fontSize: '0.8rem', color: '#888' }}>Check the "Needs Review" tab or add more data.</p>
                                         </div>
-                                        {items.map((item, index) => (
-                                            <div key={index} className="list-row">
-                                                <div className="cell">{item.name}</div>
-                                                <div className="cell">{item.city}</div>
-                                                <div className="cell branch-col">{item.branch}</div>
-                                                <div>
-                                                    <span className={`status-badge ${item.status === 'ready' ? 'ready' : 'new'}`}>
-                                                        {item.status.toUpperCase()}
-                                                    </span>
-                                                </div>
+                                    ) : viewMode === 'list' ? (
+                                        <div>
+                                            <div className="list-header">
+                                                <div>Name</div>
+                                                <div>City</div>
+                                                <div className="branch-col">Branch</div>
+                                                <div>Status</div>
+                                                <div style={{ width: 40 }}></div>
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    /* GALLERY VIEW */
-                                    <div className="gallery-container">
-                                        {items.map((item, index) => (
-                                            <div key={index} className="gallery-card">
-                                                <div className="card-preview">
-                                                    <div className="scaled-card">
-                                                        <DigitalCard
-                                                            customer={{
-                                                                nama: item.name,
-                                                                kota: item.city,
-                                                                cabang: item.branch === '-' ? '' : item.branch,
-                                                                kode: item.kode || item.displayId || 'N/A'
+                                            {items.map((item, index) => (
+                                                <div key={index} className="list-row">
+                                                    <div className="cell">{item.name}</div>
+                                                    <div className="cell">{item.city}</div>
+                                                    <div className="cell branch-col">{item.branch}</div>
+                                                    <div>
+                                                        <span
+                                                            title={item.message}
+                                                            className={`status-badge ${item.status === 'ready' ? 'ready' : 'new'}`}
+                                                            style={{ cursor: 'help' }}
+                                                        >
+                                                            {item.status.toUpperCase()}
+                                                        </span>
+                                                    </div>
+                                                    <div style={{ width: 40 }}>
+                                                        <button
+                                                            className="icon-btn danger"
+                                                            title="Run Remove"
+                                                            onClick={() => {
+                                                                const newItems = [...items];
+                                                                newItems.splice(index, 1);
+                                                                setItems(newItems);
                                                             }}
-                                                        />
+                                                        >
+                                                            <Icons.Trash size={14} />
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <div className="card-actions">
-                                                    <div className="card-name">{item.name}</div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="gallery-container">
+                                            {items.map((item, index) => (
+                                                <div key={index} className="gallery-card">
+                                                    <div className="card-preview">
+                                                        <div className="scaled-card">
+                                                            <DigitalCard
+                                                                customer={{
+                                                                    nama: item.name,
+                                                                    kota: item.city,
+                                                                    cabang: item.branch === '-' ? '' : item.branch,
+                                                                    kode: item.kode || item.displayId || 'N/A'
+                                                                }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="card-actions">
+                                                        <div className="card-name">{item.name}</div>
+                                                        <button
+                                                            className={`share-btn ${shareTarget === (item.id || item.name) ? 'sharing' : ''}`}
+                                                            onClick={() => shareSingleCard(item)}
+                                                            disabled={isProcessing}
+                                                        >
+                                                            Share
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )
+                                ) : (
+                                    /* REVIEW ITEMS LIST (Always List View for Efficiency) */
+                                    <div className="review-list">
+                                        <div className="review-list-header" style={{
+                                            padding: '10px', background: '#fff7ed', borderBottom: '1px solid #fed7aa',
+                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                                        }}>
+                                            <div style={{ color: '#9a3412', fontSize: '0.9rem' }}>
+                                                <b>⚠️ Unrecognized Data found ({reviewItems.length})</b>
+                                                <p style={{ margin: 0, fontSize: '0.8rem' }}>These names do not exist in the database. Verify before printing.</p>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: 10 }}>
+                                                <button
+                                                    className="action-btn secondary small"
+                                                    onClick={() => {
+                                                        if (confirm("Discard all review items?")) setReviewItems([]);
+                                                    }}
+                                                >Discard All</button>
+                                                <button
+                                                    className="action-btn primary small"
+                                                    onClick={() => {
+                                                        const approved = reviewItems.map(i => ({ ...i, status: 'new-approved', message: 'Manually Approved (New)' }));
+                                                        setItems([...items, ...approved]);
+                                                        setReviewItems([]);
+                                                        setTab('ready'); // Auto Switch
+                                                    }}
+                                                >Approve All ({reviewItems.length})</button>
+                                            </div>
+                                        </div>
+
+                                        <div className="list-header">
+                                            <div style={{ width: 40 }}>
+                                                {/* Checkbox All? Future improvement */}
+                                            </div>
+                                            <div>Name</div>
+                                            <div>City</div>
+                                            <div>Action</div>
+                                        </div>
+                                        {reviewItems.map((item, index) => (
+                                            <div key={index} className="list-row" style={{ background: '#fffaff' }}>
+                                                <div style={{ width: 40, textAlign: 'center' }}>
+                                                    <Icons.AlertTriangle size={14} color="#f59e0b" />
+                                                </div>
+                                                <div className="cell"><b>{item.name}</b></div>
+                                                <div className="cell">{item.city}</div>
+                                                <div className="cell" style={{ display: 'flex', gap: 5 }}>
                                                     <button
-                                                        className={`share-btn ${shareTarget === (item.id || item.name) ? 'sharing' : ''}`}
-                                                        onClick={() => shareSingleCard(item)}
-                                                        disabled={isProcessing}
+                                                        className="approve-btn"
+                                                        onClick={() => {
+                                                            const newItem = { ...item, status: 'new-approved', message: 'Manually Approved (New)' };
+                                                            setItems([...items, newItem]);
+
+                                                            const newReview = [...reviewItems];
+                                                            newReview.splice(index, 1);
+                                                            setReviewItems(newReview);
+
+                                                            if (newReview.length === 0) setTab('ready');
+                                                        }}
                                                     >
-                                                        {shareTarget === (item.id || item.name) ? '...' : 'Share'}
+                                                        ✅ Approve
+                                                    </button>
+                                                    <button
+                                                        className="discard-btn"
+                                                        onClick={() => {
+                                                            const newReview = [...reviewItems];
+                                                            newReview.splice(index, 1);
+                                                            setReviewItems(newReview);
+                                                        }}
+                                                    >
+                                                        🗑️
                                                     </button>
                                                 </div>
                                             </div>
@@ -586,72 +694,79 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                         <div className="footer-actions">
                             <button className="action-btn primary" onClick={parseInput}>
                                 <span className="icon">📋</span>
-                                <span>Review Data</span>
+                                <span>Verify Data</span>
                             </button>
                         </div>
                     ) : (
                         <>
                             {/* PRINT CONFIGURATION PANEL */}
-                            <div className="print-config-panel" style={{
-                                padding: '10px',
-                                background: '#f8fafc',
-                                borderTop: '1px solid #e2e8f0',
-                                marginBottom: '10px',
-                                borderRadius: '6px',
-                                display: 'flex',
-                                gap: '15px',
-                                alignItems: 'center',
-                                fontSize: '0.85rem'
-                            }}>
-                                <div style={{ fontWeight: '600', color: '#475569' }}>⚙️ Print Config:</div>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    W (mm):
-                                    <input
-                                        type="number"
-                                        value={printConfig.width}
-                                        onChange={e => setPrintConfig({ ...printConfig, width: Number(e.target.value) })}
-                                        style={{ width: '50px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-                                    />
-                                </label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    H (mm):
-                                    <input
-                                        type="number"
-                                        value={printConfig.height}
-                                        onChange={e => setPrintConfig({ ...printConfig, height: Number(e.target.value) })}
-                                        style={{ width: '50px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-                                    />
-                                </label>
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={printConfig.gapFeed}
-                                        onChange={e => setPrintConfig({ ...printConfig, gapFeed: e.target.checked })}
-                                    />
-                                    Gap Feed (Auto-Align)
-                                </label>
-                            </div>
+                            {tab === 'ready' && items.length > 0 && (
+                                <div className="print-config-panel" style={{
+                                    padding: '10px',
+                                    background: '#f8fafc',
+                                    borderTop: '1px solid #e2e8f0',
+                                    marginBottom: '10px',
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    gap: '15px',
+                                    alignItems: 'center',
+                                    fontSize: '0.85rem'
+                                }}>
+                                    <div style={{ fontWeight: '600', color: '#475569' }}>⚙️ Print Config:</div>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        W (mm):
+                                        <input
+                                            type="number"
+                                            value={printConfig.width}
+                                            onChange={e => setPrintConfig({ ...printConfig, width: Number(e.target.value) })}
+                                            style={{ width: '50px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                                        />
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        H (mm):
+                                        <input
+                                            type="number"
+                                            value={printConfig.height}
+                                            onChange={e => setPrintConfig({ ...printConfig, height: Number(e.target.value) })}
+                                            style={{ width: '50px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                                        />
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={printConfig.gapFeed}
+                                            onChange={e => setPrintConfig({ ...printConfig, gapFeed: e.target.checked })}
+                                        />
+                                        Gap Feed (Auto-Align)
+                                    </label>
+                                </div>
+                            )}
 
                             <div className="footer-actions">
                                 <button className="action-btn secondary back-btn" onClick={() => setStep('input')} disabled={isProcessing}>
                                     <Icons.ArrowLeft size={16} />
-                                    <span>Back</span>
+                                    <span>Back / Reset</span>
                                 </button>
 
-                                <button className="action-btn secondary" onClick={generateZip} disabled={isProcessing}>
-                                    <Icons.Download size={18} />
-                                    <span>PDF Labels</span>
-                                </button>
+                                {/* Only show actions if in Ready tab and items exist */}
+                                {tab === 'ready' && items.length > 0 && (
+                                    <>
+                                        <button className="action-btn secondary" onClick={generateZip} disabled={isProcessing}>
+                                            <Icons.Download size={18} />
+                                            <span>PDF Labels</span>
+                                        </button>
 
-                                <button className="action-btn primary" onClick={generateIdZip} disabled={isProcessing}>
-                                    <Icons.Download size={18} />
-                                    <span>ID Cards (ZIP)</span>
-                                </button>
+                                        <button className="action-btn primary" onClick={generateIdZip} disabled={isProcessing}>
+                                            <Icons.Download size={18} />
+                                            <span>ID Cards (ZIP)</span>
+                                        </button>
 
-                                <button className="action-btn print" onClick={printBatch} disabled={isProcessing}>
-                                    <Icons.Print size={18} />
-                                    <span>{isConnected ? 'Print Batch' : 'Connect Printer'}</span>
-                                </button>
+                                        <button className="action-btn print" onClick={printBatch} disabled={isProcessing}>
+                                            <Icons.Print size={18} />
+                                            <span>{isConnected ? `Print (${items.length})` : 'Connect Printer'}</span>
+                                        </button>
+                                    </>
+                                )}
                             </div>
 
                             {/* Hidden Render Area for html2canvas */}
