@@ -29,12 +29,15 @@ const Row = ({ data, index, style }) => {
             <div style={{ flex: 1, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.city}</div>
             <div style={{ flex: 1, padding: '0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.branch}</div>
             <div style={{ width: 80, padding: '0 8px' }}>
-                <span style={{
-                    padding: '2px 6px', borderRadius: 4,
-                    fontSize: 11,
-                    background: item.status === 'ready' ? '#d1fae5' : '#ffedd5',
-                    color: item.status === 'ready' ? '#065f46' : '#9a3412'
-                }}>
+                <span
+                    title={item.message || (item.status === 'ready' ? 'Customer found in DB' : 'Not in DB - Will generate independent QR')}
+                    style={{
+                        padding: '2px 6px', borderRadius: 4,
+                        fontSize: 11,
+                        background: item.status === 'ready' ? '#d1fae5' : '#ffedd5',
+                        color: item.status === 'ready' ? '#065f46' : '#9a3412',
+                        cursor: 'help'
+                    }}>
                     {item.status.toUpperCase()}
                 </span>
             </div>
@@ -153,6 +156,16 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                         np: existing.telp || ''
                     });
                 }
+            } else {
+                // NEW CUSTOMER (Not in DB)
+                // Generate a self-contained JSON so the QR is still useful/scannable
+                displayId = 'NEW';
+                kodeValue = JSON.stringify({
+                    it: 'NEW', // Indicator for scanner that this isn't in DB yet
+                    nt: name,
+                    at: city !== '-' ? city : '',
+                    ws: branch !== '-' ? branch : ''
+                });
             }
 
             return {
@@ -165,7 +178,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                 status: existing ? 'ready' : 'new',
                 kode: kodeValue, // Full JSON for QR code
                 displayId, // Clean ID for display
-                message: existing ? 'Found existing ID' : 'Will create new ID'
+                message: existing ? 'Found existing ID' : 'Will create functioning QR (Not in DB)'
             };
         }).filter(Boolean);
 
