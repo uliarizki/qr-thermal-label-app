@@ -51,6 +51,7 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
     const { isConnected, connect, print, isPrinting } = usePrinter(); // Printer Context
     const [inputText, setInputText] = useState('');
     const [inputMode, setInputMode] = useState('auto'); // 'auto', 'excel', 'csv'
+    const [branchScope, setBranchScope] = useState('ALL'); // 'ALL' or specific branch
     const [items, setItems] = useState([]); // Ready/Approved items
     const [reviewItems, setReviewItems] = useState([]); // Unrecognized items needing approval
     const [step, setStep] = useState('input'); // input, review, processing
@@ -114,8 +115,16 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
             const city = parts[1] || '-';
             const branch = parts[2] || '-';
 
-            // Check existence
-            const existing = customers?.find(c => {
+            // Filter Scope logic
+            let searchPool = customers;
+            if (branchScope !== 'ALL') {
+                searchPool = customers.filter(c =>
+                    String(c.cabang || '').toUpperCase() === branchScope.toUpperCase()
+                );
+            }
+
+            // Check existence in scoped pool
+            const existing = searchPool?.find(c => {
                 if (!c?.nama) return false;
 
                 // Safe String Conversion for comparison
@@ -522,6 +531,30 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                     📝 CSV
                                 </label>
                             </div>
+
+                            {/* NEW: Branch Scope Filter */}
+                            <div className="branch-loader" style={{
+                                margin: '10px 0', padding: '10px', background: '#f8fafc',
+                                border: '1px solid #e2e8f0', borderRadius: '6px'
+                            }}>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', marginBottom: 5 }}>
+                                    🎯 Search Scope (Optional)
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                    <label style={{ fontSize: '0.8rem', color: '#666' }}>Match only in:</label>
+                                    <select
+                                        value={branchScope}
+                                        onChange={(e) => setBranchScope(e.target.value)}
+                                        style={{ flex: 1, padding: 6, borderRadius: 4, border: '1px solid #cbd5e1' }}
+                                    >
+                                        <option value="ALL">All Branches (Global Search)</option>
+                                        <option value="BT SMG">BT SMG</option>
+                                        <option value="BT JKT">BT JKT</option>
+                                        <option value="BT SBY">BT SBY</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div className="branch-loader" style={{
                                 margin: '10px 0', padding: '10px', background: '#ecfdf5',
                                 border: '1px solid #a7f3d0', borderRadius: '6px'
