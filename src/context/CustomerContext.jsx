@@ -68,12 +68,18 @@ export function CustomerProvider({ children }) {
         // 1. Trigger Sync
         syncCustomers(false);
 
+        // Safety check
+        if (!newCustomer || typeof newCustomer !== 'object') {
+            console.error('AddCustomerLocal: Invalid customer data', newCustomer);
+            return;
+        }
+
         // 2. Select the new customer immediately for display
         // Construct safe object
         const displayCustomer = {
             id: newCustomer.id || '',
-            nama: newCustomer.nama,
-            kota: newCustomer.kota,
+            nama: newCustomer.nama || 'New Customer',
+            kota: newCustomer.kota || '',
             sales: newCustomer.sales || '',
             pabrik: newCustomer.pabrik || '',
             cabang: newCustomer.cabang || '',
