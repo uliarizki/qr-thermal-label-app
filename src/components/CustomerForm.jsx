@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Icons } from './Icons';
-import './AddCustomer.css'; // Reusing existing styles
+import './AddCustomer.css';
+import { useCustomer } from '../context/CustomerContext';
 
 export default function CustomerForm({
     initialValues,
@@ -64,6 +65,9 @@ export default function CustomerForm({
         }));
     };
 
+    // Access customers for duplicate check
+    const { customers } = useCustomer();
+
     const handleSubmit = (e) => {
         e.preventDefault();
 
@@ -72,6 +76,23 @@ export default function CustomerForm({
         Object.keys(formData).forEach(key => {
             upperCasedData[key] = typeof formData[key] === 'string' ? formData[key].toUpperCase() : formData[key];
         });
+
+        // DUPLICATE CHECK (Only in Add Mode)
+        if (!isEditMode && customers) {
+            const isDuplicate = customers.some(c =>
+                c.nama === upperCasedData.nama &&
+                c.kota === upperCasedData.kota &&
+                c.cabang === upperCasedData.cabang
+            );
+
+            if (isDuplicate) {
+                if (!window.confirm(
+                    `⚠️ DUPLICATE WARNING ⚠️\n\nA customer with the name "${upperCasedData.nama}" in "${upperCasedData.kota}" (${upperCasedData.cabang}) already exists.\n\nAre you sure you want to add this duplicate?`
+                )) {
+                    return; // Abort submission
+                }
+            }
+        }
 
         onSubmit(upperCasedData);
     };
