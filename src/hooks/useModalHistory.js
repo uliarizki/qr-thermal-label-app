@@ -69,7 +69,7 @@ export const useModalHistory = (onClose, key = 'modal') => {
                 window.history.back();
             }
         };
-    }, [onClose, key]);
+    }, [key]);
 
     // 4. Manual Close Helper
     // If user clicks "X", we want to trigger the history back mechanism 
