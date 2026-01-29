@@ -31,6 +31,7 @@ export default function CustomerSearch({
   const [activeView, setActiveView] = useState('list');
   const [isSearching, setIsSearching] = useState(false);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [visibleLimit, setVisibleLimit] = useState(20); // Pagination Limit
   const [showBatchModal, setShowBatchModal] = useState(false);
 
   // 1. Handle Initial Query (e.g. from History)
@@ -103,13 +104,14 @@ export default function CustomerSearch({
     const timer = setTimeout(() => {
       const query = searchQuery.toLowerCase().trim();
 
-      // If no query and no branch filter, clear results
+      // IF no query, show ALL (filtered by branch if active)
       if (!query && activeBranch === 'ALL') {
-        setFilteredCustomers([]);
+        setFilteredCustomers(customers);
         setIsSearching(false);
         return;
       }
 
+      // If we have a query OR branch filter:
       const terms = query.split(/\s+/).filter(Boolean);
 
       const results = customers.filter(c => {
@@ -140,6 +142,11 @@ export default function CustomerSearch({
   const handleCardClick = (customer) => {
     setSelectedCustomer(customer);
   };
+
+  // 7. Reset Pagination on Search/Branch Change
+  useEffect(() => {
+    setVisibleLimit(20);
+  }, [searchQuery, activeBranch]);
 
   return (
     <div className="customer-search page-card">
@@ -278,15 +285,34 @@ export default function CustomerSearch({
       )}
 
       {/* CUSTOMER LIST: Only render if we have a query and results */}
-      {searchQuery.trim().length > 0 && filteredCustomers.length > 0 && (
+      {filteredCustomers.length > 0 && (
         <div className={`customer-list ${activeView}-view`}>
-          {filteredCustomers.map((customer, idx) => (
+          {filteredCustomers.slice(0, visibleLimit).map((customer, idx) => (
             <CustomerCard
               key={`${customer.id || 'new'}_${idx}`}
               customer={customer}
               onClick={handleCardClick}
             />
           ))}
+
+          {filteredCustomers.length > visibleLimit && (
+            <button
+              onClick={() => setVisibleLimit(prev => prev + 20)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                marginTop: 10,
+                background: '#f1f5f9',
+                border: '1px solid #cbd5e1',
+                borderRadius: 8,
+                color: '#475569',
+                cursor: 'pointer',
+                fontWeight: '600'
+              }}
+            >
+              Load More ({filteredCustomers.length - visibleLimit} remaining)
+            </button>
+          )}
         </div>
       )}
       {/* Floating Scan Button */}
