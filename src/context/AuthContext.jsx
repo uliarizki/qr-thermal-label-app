@@ -27,7 +27,6 @@ export const AuthProvider = ({ children }) => {
 
                 if (now - loginTimestamp > SESSION_EXPIRY_MS) {
                     // Session expired - auto logout
-                    console.log('Session expired, logging out...');
                     localStorage.removeItem('qr:auth_user');
                     localStorage.removeItem('qr:auth_time');
                     // Don't toast here on init to avoid spam
