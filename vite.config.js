@@ -29,8 +29,8 @@ export default defineConfig({
         ]
       },
       workbox: {
-        // Force immediate activation of new service worker
-        skipWaiting: true,
+        // Manual update control
+        skipWaiting: false,
         clientsClaim: true,
         // Don't precache HTML - always fetch fresh
         globIgnores: ['**/index.html'],
