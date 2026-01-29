@@ -246,7 +246,8 @@ export async function addCustomer(customerData) {
     return { success: false, error: result.error };
   }
 
-  return { success: true, data: result.data };
+  // Merge input data with result data (so if result is fallback, we still have the input)
+  return { success: true, data: { ...customerData, ...result.data } };
 }
 
 // Edit existing customer
