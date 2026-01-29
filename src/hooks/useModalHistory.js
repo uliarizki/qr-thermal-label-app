@@ -12,6 +12,12 @@ import { useEffect, useRef } from 'react';
 export const useModalHistory = (onClose, key = 'modal') => {
     // Check if we pushed state so we don't pop state we didn't push (if unmounted externally)
     const pushedStateRef = useRef(false);
+    const onCloseRef = useRef(onClose);
+
+    // Keep onCloseRef current
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
 
     useEffect(() => {
         // 1. Push State on Mount

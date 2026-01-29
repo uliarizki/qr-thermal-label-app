@@ -38,16 +38,19 @@ export function CustomerProvider({ children }) {
 
         try {
             // Force reload = true
-            const data = await getCustomers(true);
-            setCustomers(data || []);
-            setLastUpdated(new Date());
+            const result = await getCustomers(true);
 
-            if (!isSilent) {
-                setIsSyncing(false);
-                if (toastId) toast.success('Data berhasil disinkronisasi!', { id: toastId });
+            if (result.success) {
+                setCustomers(result.data || []);
+                setLastUpdated(new Date());
+                if (!isSilent) {
+                    setIsSyncing(false);
+                    if (toastId) toast.success('Data berhasil disinkronisasi!', { id: toastId });
+                } else {
+                    console.log("Silent sync complete");
+                }
             } else {
-                // Even if silent, we can log or just finish
-                console.log("Silent sync complete");
+                throw new Error(result.error || 'Sync failed');
             }
         } catch (error) {
             console.error('Sync failed:', error);
