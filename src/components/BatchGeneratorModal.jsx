@@ -117,12 +117,18 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
             // Check existence
             const existing = customers?.find(c => {
                 if (!c?.nama) return false;
-                const nameMatch = c.nama.toLowerCase() === name.toLowerCase();
-                const cityMatch = (c.kota || '').toLowerCase() === city.toLowerCase();
+
+                // Safe String Conversion for comparison
+                const cName = String(c.nama).toLowerCase();
+                const iName = String(name).toLowerCase();
+
+                const nameMatch = cName === iName;
+                const cityMatch = String(c.kota || '').toLowerCase() === String(city).toLowerCase();
 
                 // Strict match if city provided, loose if not
                 if (city !== '-' && branch !== '-') {
-                    return nameMatch && cityMatch && (c.cabang || '').toLowerCase() === branch.toLowerCase();
+                    const branchMatch = String(c.cabang || '').toLowerCase() === String(branch).toLowerCase();
+                    return nameMatch && cityMatch && branchMatch;
                 }
                 return nameMatch;
             });
