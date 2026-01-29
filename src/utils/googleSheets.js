@@ -247,9 +247,7 @@ export async function addCustomer(customerData) {
   }
 
   // Merge input data with result data (so if result is fallback, we still have the input)
-  const merged = { ...customerData, ...result.data };
-  console.log('✅ addCustomer merged result:', merged, 'from input:', customerData, 'and API:', result.data);
-  return { success: true, data: merged };
+  return { success: true, data: { ...customerData, ...result.data } };
 }
 
 // Edit existing customer

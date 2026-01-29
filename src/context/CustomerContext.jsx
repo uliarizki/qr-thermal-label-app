@@ -69,7 +69,6 @@ export function CustomerProvider({ children }) {
         syncCustomers(false);
 
         // Safety check
-        console.log("🔹 addCustomerLocal received:", newCustomer);
         if (!newCustomer || typeof newCustomer !== 'object') {
             console.error('AddCustomerLocal: Invalid customer data', newCustomer);
             return;

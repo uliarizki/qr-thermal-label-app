@@ -26,11 +26,12 @@ export default function CustomerSearch({
     isSyncing,
     lastUpdated
   } = useCustomer();
+  const [activeBranch, setActiveBranch] = useState('ALL'); // NEW: Branch Filter
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeView, setActiveView] = useState('grid');
-  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [activeView, setActiveView] = useState('list');
   const [isSearching, setIsSearching] = useState(false);
-  const [showBatchModal, setShowBatchModal] = useState(false); // NEW
+  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  const [showBatchModal, setShowBatchModal] = useState(false);
 
   // 1. Handle Initial Query (e.g. from History)
   useEffect(() => {
@@ -47,13 +48,21 @@ export default function CustomerSearch({
 
       const savedView = localStorage.getItem('qr:viewMode');
       if (savedView) setActiveView(savedView);
+
+      const savedBranch = localStorage.getItem('qr:activeBranch');
+      if (savedBranch) setActiveBranch(savedBranch);
     }
   }, [initialQuery]);
 
-  // 3. Persist View and Query
+  // 3. Persist View, Query, and Branch
   const toggleView = (mode) => {
     setActiveView(mode);
     localStorage.setItem('qr:viewMode', mode);
+  };
+
+  const handleBranchChange = (branch) => {
+    setActiveBranch(branch);
+    localStorage.setItem('qr:activeBranch', branch);
   };
 
   useEffect(() => {
@@ -63,7 +72,7 @@ export default function CustomerSearch({
     }
   }, [searchQuery]);
 
-  // 4. Log Search History
+  // 4. Log Search History (existing logic...)
   const queryRef = useRef(searchQuery);
   useEffect(() => {
     queryRef.current = searchQuery;
@@ -81,10 +90,10 @@ export default function CustomerSearch({
     };
   }, []);
 
-  // 5. Filter Logic (Debounced)
+  // 5. Filter Logic (Debounced + Branch)
   useEffect(() => {
-    // Start searching immediately when query changes
-    if (searchQuery.trim()) {
+    // Start searching immediately when query changes or branch changes
+    if (searchQuery.trim() || activeBranch !== 'ALL') {
       setIsSearching(true);
     } else {
       setIsSearching(false);
@@ -94,14 +103,26 @@ export default function CustomerSearch({
     const timer = setTimeout(() => {
       const query = searchQuery.toLowerCase().trim();
 
-      if (!query) {
+      // If no query and no branch filter, clear results
+      if (!query && activeBranch === 'ALL') {
         setFilteredCustomers([]);
         setIsSearching(false);
         return;
       }
 
       const terms = query.split(/\s+/).filter(Boolean);
+
       const results = customers.filter(c => {
+        // 1. Branch Check
+        if (activeBranch !== 'ALL') {
+          // Normalize both sides for comparison
+          const cBranch = (c.cabang || '').toUpperCase();
+          if (!cBranch.includes(activeBranch)) return false;
+        }
+
+        // 2. Text Search Check (if query exists)
+        if (!query) return true; // If only branch filter active, show all in branch
+
         if (c.nama && c.nama.toLowerCase().includes(query)) return true;
         const haystack = `${c.id || ''} ${c.nama || ''} ${c.kota || ''} ${c.pabrik || ''} ${c.sales || ''}`.toLowerCase();
         return terms.every(term => haystack.includes(term));
@@ -112,7 +133,7 @@ export default function CustomerSearch({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, customers]);
+  }, [searchQuery, activeBranch, customers]); // Added activeBranch to dependency
 
 
   // 6. Handle Selection
@@ -123,18 +144,41 @@ export default function CustomerSearch({
   return (
     <div className="customer-search page-card">
       {/* SEARCH HEADER */}
-      <div className="search-header-container">
-        <div style={{ position: 'relative', flex: 1 }}>
+      <div className="search-header-container" style={{ flexWrap: 'wrap', gap: 10 }}>
+
+        {/* BRANCH FILTER DROPDOWN */}
+        <select
+          value={activeBranch}
+          onChange={(e) => handleBranchChange(e.target.value)}
+          style={{
+            padding: '10px',
+            borderRadius: '8px',
+            border: '1px solid #ddd',
+            outline: 'none',
+            fontSize: '14px',
+            background: '#fff',
+            cursor: 'pointer',
+            minWidth: '110px'
+            // Mobile optimization needed?
+          }}
+        >
+          <option value="ALL">Semua Cabang</option>
+          <option value="BT SMG">BT SMG</option>
+          <option value="BT JKT">BT JKT</option>
+          <option value="BT SBY">BT SBY</option>
+        </select>
+
+        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
           <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#999' }}>
             <Icons.Search size={20} />
           </div>
           <input
             type="text"
-            placeholder="Cari berdasarkan Nama, ID, atau Kota..."
+            placeholder="Cari Nama, ID, Kota..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
-            style={{ paddingLeft: 40, paddingRight: 40 }}
+            style={{ paddingLeft: 40, paddingRight: 40, width: '100%' }}
           />
           {searchQuery && (
             <button
@@ -163,18 +207,17 @@ export default function CustomerSearch({
           className="sync-btn"
           onClick={() => syncCustomers(false)}
           disabled={isSyncing}
-          title="Ambil data terbaru dari Google Sheets"
+          title="Ambil data terbaru"
           style={{ display: 'flex', alignItems: 'center', gap: 6 }}
         >
           {isSyncing ? (
             <>
               <span className="spin"><Icons.Refresh size={18} /></span>
-              <span>Sync</span>
+              {/* Hide text on small screens if needed */}
             </>
           ) : (
             <>
               <Icons.Refresh size={18} />
-              <span>Sync</span>
             </>
           )}
         </button>
@@ -239,7 +282,7 @@ export default function CustomerSearch({
         <div className={`customer-list ${activeView}-view`}>
           {filteredCustomers.map((customer, idx) => (
             <CustomerCard
-              key={customer.id || idx}
+              key={`${customer.id || 'new'}_${idx}`}
               customer={customer}
               onClick={handleCardClick}
             />

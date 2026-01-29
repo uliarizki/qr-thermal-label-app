@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { toast } from 'react-hot-toast';
 import { generateLabelPdfVector } from '../utils/pdfGeneratorVector';
 import { renderLabelToCanvas, canvasToRaster } from '../utils/printHelpers';
 import { addCustomer } from '../utils/googleSheets';
@@ -62,8 +63,9 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
     const cardRef = React.useRef(null);
     const [progress, setProgress] = useState('');
 
-    // History Management (Back Button Support)
-    const handleClose = useModalHistory(onClose, 'batch-generator');
+    // History Management (Disabled for debugging)
+    const handleClose = onClose;
+    // const handleClose = useModalHistory(onClose, 'batch-generator');
 
     // Print Configuration State
     const [printConfig, setPrintConfig] = useState({
@@ -189,6 +191,67 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
         setStep('review');
     };
 
+    // 1b. Load from Branch (New Feature)
+    const [selectedBranch, setSelectedBranch] = useState('BT SMG');
+
+    const handleLoadBranch = () => {
+        if (!selectedBranch) return;
+
+        // Filter customers by selected branch
+        // Normalize comparison
+        const branchCustomers = customers.filter(c =>
+            (c.cabang || '').toUpperCase().includes(selectedBranch.toUpperCase())
+        );
+
+        if (branchCustomers.length === 0) {
+            toast.error(`No customers found for branch: ${selectedBranch}`);
+            return;
+        }
+
+        if (!window.confirm(`Found ${branchCustomers.length} customers in ${selectedBranch}. Load them all into the generator?`)) {
+            return;
+        }
+
+        // Convert to Batch Items format
+        const batchItems = branchCustomers.map((c, idx) => {
+            // Reuse logic from parseInput for existing customers
+            let displayId = c.kode || c.id;
+            let kodeValue;
+
+            if (c.kode && typeof c.kode === 'string' && c.kode.trim().startsWith('{')) {
+                kodeValue = c.kode;
+            } else {
+                kodeValue = JSON.stringify({
+                    it: c.id || '',
+                    nt: c.nama,
+                    at: c.kota || '',
+                    pt: c.sales || '',
+                    kp: c.pabrik || '',
+                    ws: c.cabang || '',
+                    np: c.telp || ''
+                });
+            }
+
+            return {
+                id: idx,
+                name: c.nama,
+                city: c.kota || '-',
+                branch: c.cabang || selectedBranch,
+                existingId: c.id,
+                existingCustomer: c,
+                status: 'ready',
+                kode: kodeValue,
+                displayId: displayId,
+                message: 'Loaded from Branch'
+            };
+        });
+
+        setItems(batchItems);
+        setReviewItems([]); // Clear review items
+        setTab('ready'); // Switch to ready tab
+        setStep('review'); // Go to review step
+        toast.success(`Loaded ${batchItems.length} customers from ${selectedBranch}`);
+    };
     // 2. Register New Customers
     const registerNewCustomers = async () => {
         /* ... (Keep existing logic if needed, or hide) ... */
@@ -415,10 +478,10 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
             setIsProcessing(false);
         }
     };
+
     return (
         <div className="modal-overlay" onClick={!isProcessing ? handleClose : undefined}>
             <div className="modal-content batch-modal" onClick={e => e.stopPropagation()}>
-                {/* HEADER */}
                 <div className="modal-header">
                     <h2>Batch ID Generator</h2>
                     <div className="header-actions">
@@ -453,9 +516,35 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                     📝 CSV
                                 </label>
                             </div>
+                            <div className="branch-loader" style={{
+                                margin: '10px 0', padding: '10px', background: '#ecfdf5',
+                                border: '1px solid #a7f3d0', borderRadius: '6px'
+                            }}>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#047857', marginBottom: 5 }}>
+                                    🏭 Load from Branch (Batch Export)
+                                </div>
+                                <div style={{ display: 'flex', gap: 10 }}>
+                                    <select
+                                        value={selectedBranch}
+                                        onChange={(e) => setSelectedBranch(e.target.value)}
+                                        style={{ flex: 1, padding: 8, borderRadius: 4, border: '1px solid #d1fae5' }}
+                                    >
+                                        <option value="BT SMG">BT SMG</option>
+                                        <option value="BT JKT">BT JKT</option>
+                                        <option value="BT SBY">BT SBY</option>
+                                    </select>
+                                    <button
+                                        className="action-btn primary small"
+                                        onClick={handleLoadBranch}
+                                        style={{ background: '#059669' }}
+                                    >
+                                        Load Branch
+                                    </button>
+                                </div>
+                            </div>
 
                             <p style={{ marginBottom: 10, fontSize: '0.85rem' }}>
-                                Paste data: <b>Name</b> (min) or <b>Name, City, Branch</b>
+                                <b>OR</b> Paste data: <b>Name</b> (min) or <b>Name, City, Branch</b>
                             </p>
 
                             <textarea
@@ -463,7 +552,6 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                                 onChange={(e) => setInputText(e.target.value)}
                                 placeholder={"Budi Santoso, Tegal, Pasar Pagi\nSiti Aminah, Brebes, Ketanggungan"}
                             />
-
                             {inputText.trim() && (
                                 <div className="format-detect">
                                     <span>Detected:</span>
@@ -797,6 +885,6 @@ export default function BatchGeneratorModal({ customers, onClose, onSync }) {
                     </div>
                 )}
             </div>
-        </div >
+        </div>
     );
 }

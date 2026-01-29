@@ -29,11 +29,8 @@ export default defineConfig({
         ]
       },
       workbox: {
-        // Manual update control
         skipWaiting: false,
         clientsClaim: true,
-        // Don't precache HTML - always fetch fresh
-        globIgnores: ['**/index.html'],
         runtimeCaching: [
           {
             // HTML pages - Network first, fall back to cache
