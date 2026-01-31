@@ -137,3 +137,14 @@ I am currently working on **Phase 3: UI/UX Polish**:
 2. Consistent modal behavior (Backdrop close)
 3. Loading states everywhere
 4. Desktop enhancements (Shortcuts)
+
+# Feature: Infinite Scroll & Larger Batch
+## Goal
+Replace manual "Load More" button with automatic infinite scroll and increase batch size to improve user experience.
+
+## Proposed Changes
+### [MODIFY] [CustomerSearch.jsx](file:///d:/PROGRAM/qr-thermal-label-app/src/components/CustomerSearch.jsx)
+- **State:** Increase `visibleLimit` increment (from 20 to 50).
+- **Logic:** Implement `IntersectionObserver` to trigger loading next batch when a sentinel element comes into view.
+- **UI:** Replace "Load More" button with a loading spinner/sentinel div.
+

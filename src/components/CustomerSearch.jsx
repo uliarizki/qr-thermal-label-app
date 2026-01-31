@@ -31,8 +31,9 @@ export default function CustomerSearch({
   const [activeView, setActiveView] = useState('list');
   const [isSearching, setIsSearching] = useState(false);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
-  const [visibleLimit, setVisibleLimit] = useState(20); // Pagination Limit
+  const [visibleLimit, setVisibleLimit] = useState(50); // Increased from 20 to 50
   const [showBatchModal, setShowBatchModal] = useState(false);
+  const loaderRef = useRef(null); // Sentinel Ref
 
   // 1. Handle Initial Query (e.g. from History)
   useEffect(() => {
@@ -145,8 +146,30 @@ export default function CustomerSearch({
 
   // 7. Reset Pagination on Search/Branch Change
   useEffect(() => {
-    setVisibleLimit(20);
+    setVisibleLimit(50);
   }, [searchQuery, activeBranch]);
+
+  // 8. Infinite Scroll Observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting) {
+          setVisibleLimit((prev) => prev + 50);
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    const currentLoader = loaderRef.current;
+    if (currentLoader) {
+      observer.observe(currentLoader);
+    }
+
+    return () => {
+      if (currentLoader) observer.unobserve(currentLoader);
+    };
+  }, [filteredCustomers, visibleLimit]); // Re-attach when list changes
 
   return (
     <div className="customer-search page-card">
@@ -295,23 +318,25 @@ export default function CustomerSearch({
             />
           ))}
 
+          {/* Sentinel / Loader */}
           {filteredCustomers.length > visibleLimit && (
-            <button
-              onClick={() => setVisibleLimit(prev => prev + 20)}
+            <div
+              ref={loaderRef}
               style={{
-                width: '100%',
-                padding: '12px',
-                marginTop: 10,
-                background: '#f1f5f9',
-                border: '1px solid #cbd5e1',
-                borderRadius: 8,
-                color: '#475569',
-                cursor: 'pointer',
-                fontWeight: '600'
+                textAlign: 'center',
+                padding: '20px',
+                color: '#888',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 8,
+                gridColumn: activeView === 'grid' ? '1 / -1' : 'auto',
+                width: '100%'
               }}
             >
-              Load More ({filteredCustomers.length - visibleLimit} remaining)
-            </button>
+              <span className="spin"><Icons.Refresh size={20} /></span>
+              <span>Loading more...</span>
+            </div>
           )}
         </div>
       )}
