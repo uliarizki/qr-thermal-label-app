@@ -148,3 +148,17 @@ Replace manual "Load More" button with automatic infinite scroll and increase ba
 - **Logic:** Implement `IntersectionObserver` to trigger loading next batch when a sentinel element comes into view.
 - **UI:** Replace "Load More" button with a loading spinner/sentinel div.
 
+# Feature: Smart Relevance Search
+## Goal
+Improve search experience by ranking results based on relevance (Name > City > Branch) instead of simple filtering. Support "Name City" queries intuitively.
+
+## Proposed Changes
+### [MODIFY] [CustomerSearch.jsx](file:///d:/PROGRAM/qr-thermal-label-app/src/components/CustomerSearch.jsx)
+- **Logic:** Replace simple `filter` with `map` (score) -> `sort` -> `filter`.
+- **Scoring Algorithm:**
+    - ID Match: 100pts
+    - Name StartsWith: 50pts
+    - Name Includes: 20pts
+    - City Match: 10pts
+    - Multi-term handling: Sum of scores.
+

@@ -92,7 +92,7 @@ export default function CustomerSearch({
     };
   }, []);
 
-  // 5. Filter Logic (Debounced + Branch)
+  // 5. Smart Search Logic (Weighted Scoring)
   useEffect(() => {
     // Start searching immediately when query changes or branch changes
     if (searchQuery.trim() || activeBranch !== 'ALL') {
@@ -115,28 +115,67 @@ export default function CustomerSearch({
       // If we have a query OR branch filter:
       const terms = query.split(/\s+/).filter(Boolean);
 
-      const results = customers.filter(c => {
-        // 1. Branch Check
+      // Map customers to { customer, score }
+      const scoredResults = customers.map(c => {
+        let score = 0;
+
+        // 1. Branch Filter Scope (Hard Filter - If fails, score is 0/Exclude)
         if (activeBranch !== 'ALL') {
-          // Normalize both sides for comparison
           const cBranch = (c.cabang || '').toUpperCase();
-          if (!cBranch.includes(activeBranch)) return false;
+          if (!cBranch.includes(activeBranch)) return { c, score: -1 }; // Exclude
         }
 
-        // 2. Text Search Check (if query exists)
-        if (!query) return true; // If only branch filter active, show all in branch
+        // 2. If no text query, but passed branch filter -> keep it (score 1 to include)
+        if (!query) return { c, score: 1 };
 
-        if (c.nama && c.nama.toLowerCase().includes(query)) return true;
-        const haystack = `${c.id || ''} ${c.nama || ''} ${c.kota || ''} ${c.pabrik || ''} ${c.sales || ''}`.toLowerCase();
-        return terms.every(term => haystack.includes(term));
+        // 3. Relevance Scoring
+        const cId = String(c.id || '').toLowerCase();
+        const cName = String(c.nama || '').toLowerCase();
+        const cCity = String(c.kota || '').toLowerCase();
+        const cBranch = String(c.cabang || '').toLowerCase();
+        const cMeta = `${c.pabrik || ''} ${c.sales || ''}`.toLowerCase();
+
+        // A. ID Match (Highest Priority)
+        if (cId === query) score += 100;
+        else if (cId.includes(query)) score += 80;
+
+        // B. Name Match
+        if (cName === query) score += 60; // Exact Name
+        else if (cName.startsWith(query)) score += 50; // Starts With
+        else if (cName.includes(query)) score += 20; // Contains
+
+        // C. Term Matching (for "Name City" support)
+        // Check if ALL terms match something in the record
+        // Increased score for each term matched in specific fields
+        const allTermsMatch = terms.every(term => {
+          let termMatched = false;
+
+          if (cName.includes(term)) { score += 5; termMatched = true; }
+          if (cCity.includes(term)) { score += 10; termMatched = true; } // Boost city relevance
+          if (cBranch.includes(term)) { score += 5; termMatched = true; }
+          if (cId.includes(term)) { termMatched = true; }
+          if (cMeta.includes(term)) { score += 2; termMatched = true; }
+
+          return termMatched;
+        });
+
+        if (!allTermsMatch) return { c, score: -1 }; // If any term misses, exclude
+
+        return { c, score };
       });
+
+      // Filter & Sort
+      const results = scoredResults
+        .filter(item => item.score > 0)
+        .sort((a, b) => b.score - a.score) // Descending
+        .map(item => item.c);
 
       setFilteredCustomers(results);
       setIsSearching(false); // Search done
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, activeBranch, customers]); // Added activeBranch to dependency
+  }, [searchQuery, activeBranch, customers]);
 
 
   // 6. Handle Selection
