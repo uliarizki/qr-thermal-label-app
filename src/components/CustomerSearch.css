@@ -140,10 +140,16 @@
   gap: 8px;
   margin-bottom: 20px;
   justify-content: flex-end;
-  flex-wrap: nowrap;
-  /* Force single row */
-  overflow-x: auto;
-  /* Safety scroll if extremely small */
+  align-items: center;
+  /* Ensure vertical alignment */
+}
+
+/* Ensure view-toggles (container for buttons) is strictly horizontal */
+.view-toggles {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 4px;
 }
 
 .view-btn:hover {

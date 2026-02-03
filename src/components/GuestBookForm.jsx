@@ -105,14 +105,26 @@ export default function GuestBookForm({
                     <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 600, color: '#555' }}>
                         Lokasi Acara (Cabang)
                     </label>
-                    <div className="view-toggles"> {/* Reuse Segmented Control Class */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                         {['BT SMG', 'BT JKT', 'BT SBY'].map(br => (
                             <button
                                 key={br}
                                 type="button"
                                 onClick={() => setBranch(br)}
-                                className={`view-btn ${manualForm.cabang === br ? 'active' : ''}`}
-                                style={{ flex: 1, justifyContent: 'center' }}
+                                style={{
+                                    padding: '12px 4px',
+                                    border: manualForm.cabang === br ? '2px solid #D4AF37' : '1px solid #e5e7eb',
+                                    background: manualForm.cabang === br ? '#fffdf5' : 'white',
+                                    color: manualForm.cabang === br ? '#D4AF37' : '#666',
+                                    borderRadius: 8,
+                                    cursor: 'pointer',
+                                    fontWeight: manualForm.cabang === br ? 'bold' : 'normal',
+                                    fontSize: 13,
+                                    transition: 'all 0.2s',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center'
+                                }}
                             >
                                 {br}
                             </button>
