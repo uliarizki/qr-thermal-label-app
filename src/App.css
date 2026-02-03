@@ -435,3 +435,23 @@ textarea {
   background-repeat: repeat;
   mix-blend-mode: multiply;
 }
+
+/* Global Mobile Optimizations */
+@media (max-width: 600px) {
+
+  /* Enforce touch target size */
+  button,
+  input,
+  select,
+  .tab-btn,
+  .action-btn {
+    min-height: 44px;
+    touch-action: manipulation;
+    /* Disable double-tap zoom delay */
+  }
+
+  /* Adjust page container padding */
+  .app-content {
+    padding: 16px 12px;
+  }
+}

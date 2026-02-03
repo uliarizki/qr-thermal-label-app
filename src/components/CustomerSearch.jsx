@@ -382,23 +382,7 @@ export default function CustomerSearch({
       {/* Floating Scan Button */}
       <button
         onClick={onScanTrigger}
-        style={{
-          position: 'fixed',
-          bottom: 80, // Above bottom nav if present, or just bottom right
-          right: 20,
-          background: '#D4AF37',
-          color: 'white',
-          border: 'none',
-          borderRadius: 50,
-          width: 56,
-          height: 56,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-          zIndex: 100,
-          cursor: 'pointer'
-        }}
+        className="floating-scan-btn"
         title="Scan QR Code"
       >
         <Icons.Scan size={28} />

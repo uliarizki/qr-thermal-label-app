@@ -474,19 +474,14 @@
         padding: 4px 6px;
     }
 
-    /* LIST: Hide Branch column on mobile */
-    .batch-modal .list-header {
-        grid-template-columns: 2fr 1.5fr 60px;
-    }
-
+    /* LIST: Enable Horizontal Scroll instead of hiding */
+    .batch-modal .list-header,
     .batch-modal .list-row {
-        grid-template-columns: 2fr 1.5fr 60px;
+        min-width: 600px;
+        /* Force minimum width to trigger scroll */
     }
 
-    .batch-modal .list-header .branch-col,
-    .batch-modal .list-row .branch-col {
-        display: none;
-    }
+    /* .branch-col was previously hidden, now we keep it visible via scroll */
 
     /* Gallery: Single column on very small screens */
     .batch-modal .gallery-container {

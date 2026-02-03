@@ -251,6 +251,52 @@
   }
 }
 
+/* Stack Header on Mobile */
+.search-header-container {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+/* Floating Button Mobile Position */
+.floating-scan-btn {
+  bottom: 90px !important;
+  /* Higher to avoid overlap */
+  right: 16px !important;
+  width: 60px !important;
+  height: 60px !important;
+}
+}
+
+/* Floating Scan Button Base Styles */
+.floating-scan-btn {
+  position: fixed;
+  bottom: 40px;
+  right: 30px;
+  background: var(--primary-gold);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+  z-index: 100;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.floating-scan-btn:hover {
+  transform: scale(1.1);
+  background: var(--primary-gold-dark);
+}
+
+.floating-scan-btn:active {
+  transform: scale(0.95);
+}
+
 /* --- CARD COMPONENT --- */
 
 .customer-card {

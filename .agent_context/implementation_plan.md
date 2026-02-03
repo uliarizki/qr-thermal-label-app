@@ -162,3 +162,20 @@ Improve search experience by ranking results based on relevance (Name > City > B
     - City Match: 10pts
     - Multi-term handling: Sum of scores.
 
+# Feature: Mobile Responsive Polish
+## Goal
+Optimize the application for mobile usage (Smartphone/Tablet) to ensure usability in warehouse/field conditions.
+
+## Proposed Changes
+### [MODIFY] [App.css](file:///d:/PROGRAM/qr-thermal-label-app/src/App.css)
+- **Global:** Ensure all interactive elements (buttons, inputs) have `min-height: 44px`.
+- **Layout:** Adjust padding for mobile viewports (`@media (max-width: 600px)`).
+
+### [MODIFY] [CustomerSearch.jsx](file:///d:/PROGRAM/qr-thermal-label-app/src/components/CustomerSearch.css)
+- **Header:** Stack "Branch Filter" and "Search Bar" vertically on mobile to prevent overcrowding.
+- **Floating Action:** Ensure the floating "Scan" button is safely above the mobile browser bottom bar.
+
+### [MODIFY] [BatchGeneratorModal.css](file:///d:/PROGRAM/qr-thermal-label-app/src/components/BatchGeneratorModal.css)
+- **Steps:** Make the step indicator horizontal scrollable or compact on mobile.
+- **Table:** Ensure the preview table scrolls horizontally without breaking layout.
+
