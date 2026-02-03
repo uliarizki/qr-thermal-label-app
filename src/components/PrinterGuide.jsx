@@ -10,9 +10,6 @@ import './PrinterGuide.css';
 const PrinterGuide = ({ onClose }) => {
     const [activeSection, setActiveSection] = useState('overview');
 
-    // History Management
-    const handleClose = useModalHistory(onClose, 'printer-guide');
-
     const sections = [
         { id: 'overview', title: '📋 Overview', icon: '📋' },
         { id: 'android', title: '📱 Android', icon: '📱' },
@@ -23,11 +20,16 @@ const PrinterGuide = ({ onClose }) => {
     // Handle Esc Key
     React.useEffect(() => {
         const handleEsc = (e) => {
-            if (e.key === 'Escape') handleClose();
+            if (e.key === 'Escape') onClose();
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [handleClose]);
+    }, [onClose]);
+
+    // Simple close wrapper
+    const handleClose = () => {
+        onClose();
+    };
 
     return (
         <div className="printer-guide-overlay" onClick={handleClose}>
