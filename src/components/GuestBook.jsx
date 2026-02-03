@@ -184,10 +184,10 @@ export default function GuestBook() {
             {/* UNIFIED HEADER */}
             <div className="search-header-container" style={{ marginBottom: 20 }}>
                 <div style={{ flex: 1 }}>
-                    <h2 style={{ margin: 0, color: '#D4AF37', fontFamily: 'var(--font-brand)', fontSize: '1.8rem' }}>
+                    <h2 style={{ margin: 0, color: '#333', fontSize: '1.6rem' }}> {/* Removed custom brand font */}
                         Buku Tamu
                     </h2>
-                    <p style={{ margin: 0, fontSize: 12, color: '#888' }}>
+                    <p style={{ margin: 0, fontSize: 13, color: '#666' }}>
                         Pilih Mode Scan atau Cek List Kehadiran
                     </p>
                 </div>

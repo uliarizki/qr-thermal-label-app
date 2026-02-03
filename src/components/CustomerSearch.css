@@ -162,15 +162,25 @@
   /* Make view buttons compact to fit on one line */
   .view-toggles .view-btn,
   .view-controls .view-btn {
-    padding: 0 10px;
-    /* Reduced padding */
-    font-size: 13px;
-    height: 40px;
-    /* Keep accessible height */
+    padding: 0 8px;
+    /* Reduced padding further */
+    font-size: 12px;
+    /* Smaller font */
+    height: 36px;
+    /* Reduced height */
   }
 
   .view-toggles {
     gap: 2px;
+  }
+
+  /* Force controls to stay in one line */
+  .view-controls {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: 100%;
+    justify-content: flex-end;
+    /* Keep aligned right but scrollable if needed */
   }
 }
 
