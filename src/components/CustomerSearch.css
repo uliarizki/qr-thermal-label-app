@@ -1,16 +1,85 @@
-/* src/components/CustomerSearch.css */
+/* --- SEARCH HEADER LAYOUT --- */
 
 .search-header-container {
   display: flex;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+  /* Allow wrap on mobile */
+}
+
+/* Group 1: Filter & Sync */
+.filter-sync-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.branch-select {
+  padding: 10px;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  /* Thicker border to match inputs */
+  outline: none;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+  min-width: 140px;
+  height: 44px;
+  /* Fix height */
+}
+
+.branch-select:focus {
+  border-color: var(--primary-gold);
+}
+
+.sync-btn {
+  padding: 0;
+  width: 44px;
+  /* Square button */
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 2px solid var(--primary-gold);
+  /* Gold border for sync */
+  color: var(--primary-gold-dark);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sync-btn:hover:not(:disabled) {
+  background: #fffdf5;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(212, 175, 55, 0.2);
+}
+
+.sync-btn:disabled {
+  opacity: 0.6;
+  border-color: #ddd;
+  color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Group 2: Search Input Wrapper */
+.search-input-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  /* Allow shrinking but not too much */
+  display: flex;
   align-items: center;
 }
 
 .search-input {
-  flex-grow: 1;
   width: 100%;
-  padding: 14px;
+  padding: 10px 40px;
+  /* Space for icons */
+  height: 44px;
   border: 2px solid #e5e7eb;
   border-radius: var(--radius-md);
   font-size: 16px;
@@ -21,10 +90,34 @@
   outline: none;
   border-color: var(--primary-gold);
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15);
-  /* Keep generic for now or define shadow-gold-sm */
 }
 
-.sync-btn,
+.search-icon-wrapper {
+  position: absolute;
+  left: 12px;
+  color: #999;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.clear-search-btn:hover {
+  color: #666;
+}
+
 .view-btn {
   padding: 10px 20px;
   background: white;
@@ -36,63 +129,9 @@
   white-space: nowrap;
   transition: all 0.2s;
   gap: 6px;
-}
-
-/* SEGMENTED CONTROL CONTAINER */
-.view-toggles {
-  background: #f1f2f6;
-  padding: 4px;
-  border-radius: 10px;
-  /* Slight deviation ok for pill */
-  display: flex;
-  gap: 4px;
-  border: 1px solid #e5e7eb;
-}
-
-/* BUTTONS INSIDE SEGMENTED CONTROL */
-.view-toggles .view-btn {
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-md);
-  color: #666;
-  padding: 8px 16px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   height: 40px;
-  /* Compact height for the toggle */
-  font-size: 14px;
-  box-shadow: none;
-}
-
-.view-toggles .view-btn:hover {
-  background: rgba(0, 0, 0, 0.03);
-  color: #444;
-}
-
-.view-toggles .view-btn.active {
-  background: white;
-  color: var(--premium-black);
-  box-shadow: var(--shadow-sm);
-  font-weight: 700;
-  /* No jump on active */
-}
-
-/* Sync specific override */
-.sync-btn {
-  border-color: var(--primary-gold);
-  color: var(--primary-gold-dark);
-}
-
-.sync-btn:hover:not(:disabled) {
-  background: #fffdf5;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-gold);
-}
-
-.sync-btn:disabled {
-  opacity: 0.7;
-  cursor: wait;
-  border-color: #ddd;
-  color: #999;
+  display: flex;
+  align-items: center;
 }
 
 /* VIEW CONTROLS */
@@ -251,28 +290,40 @@
   }
 }
 
-/* Stack Header on Mobile */
-.search-header-container {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 12px;
-}
+/* MOBILE LAYOUT ADJUSTMENTS */
+@media (max-width: 768px) {
+  .search-header-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
 
-/* Floating Button Mobile Position */
-.floating-scan-btn {
-  bottom: 90px !important;
-  /* Higher to avoid overlap */
-  right: 16px !important;
-  width: 60px !important;
-  height: 60px !important;
-}
+  /* Make the filter group expand to fill width, but keep items localized */
+  .filter-sync-group {
+    width: 100%;
+    justify-content: space-between;
+    /* Space out Branch and Sync */
+  }
+
+  .branch-select {
+    flex: 1;
+    /* Branch takes available space */
+    min-width: 0;
+  }
+
+  /* Sync button stays fixed size (compact) */
+
+  /* Search input stacks below and takes full width */
+  .search-input-wrapper {
+    width: 100%;
+  }
 }
 
 /* Floating Scan Button Base Styles */
 .floating-scan-btn {
   position: fixed;
-  bottom: 40px;
-  right: 30px;
+  bottom: 30px;
+  right: 20px;
+  /* Standard accessible position */
   background: var(--primary-gold);
   color: white;
   border: none;

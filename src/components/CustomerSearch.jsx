@@ -213,32 +213,38 @@ export default function CustomerSearch({
   return (
     <div className="customer-search page-card">
       {/* SEARCH HEADER */}
-      <div className="search-header-container" style={{ flexWrap: 'wrap', gap: 10 }}>
+      <div className="search-header-container">
 
-        {/* BRANCH FILTER DROPDOWN */}
-        <select
-          value={activeBranch}
-          onChange={(e) => handleBranchChange(e.target.value)}
-          style={{
-            padding: '10px',
-            borderRadius: '8px',
-            border: '1px solid #ddd',
-            outline: 'none',
-            fontSize: '14px',
-            background: '#fff',
-            cursor: 'pointer',
-            minWidth: '110px'
-            // Mobile optimization needed?
-          }}
-        >
-          <option value="ALL">Semua Cabang</option>
-          <option value="BT SMG">BT SMG</option>
-          <option value="BT JKT">BT JKT</option>
-          <option value="BT SBY">BT SBY</option>
-        </select>
+        {/* ROW 1: Filter & Sync (Grouped for Mobile) */}
+        <div className="filter-sync-group">
+          <select
+            value={activeBranch}
+            onChange={(e) => handleBranchChange(e.target.value)}
+            className="branch-select"
+          >
+            <option value="ALL">Semua Cabang</option>
+            <option value="BT SMG">BT SMG</option>
+            <option value="BT JKT">BT JKT</option>
+            <option value="BT SBY">BT SBY</option>
+          </select>
 
-        <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-          <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#999' }}>
+          <button
+            className="sync-btn"
+            onClick={() => syncCustomers(false)}
+            disabled={isSyncing}
+            title="Ambil data terbaru"
+          >
+            {isSyncing ? (
+              <span className="spin"><Icons.Refresh size={20} /></span>
+            ) : (
+              <Icons.Refresh size={20} />
+            )}
+          </button>
+        </div>
+
+        {/* ROW 2: Search Input (Full Width on Mobile) */}
+        <div className="search-input-wrapper">
+          <div className="search-icon-wrapper">
             <Icons.Search size={20} />
           </div>
           <input
@@ -247,49 +253,17 @@ export default function CustomerSearch({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
-            style={{ paddingLeft: 40, paddingRight: 40, width: '100%' }}
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              style={{
-                position: 'absolute',
-                right: 12,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'transparent',
-                border: 'none',
-                color: '#999',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 4
-              }}
+              className="clear-search-btn"
               title="Bersihkan Pencarian"
             >
               <Icons.Close size={18} />
             </button>
           )}
         </div>
-        <button
-          className="sync-btn"
-          onClick={() => syncCustomers(false)}
-          disabled={isSyncing}
-          title="Ambil data terbaru"
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
-        >
-          {isSyncing ? (
-            <>
-              <span className="spin"><Icons.Refresh size={18} /></span>
-              {/* Hide text on small screens if needed */}
-            </>
-          ) : (
-            <>
-              <Icons.Refresh size={18} />
-            </>
-          )}
-        </button>
       </div>
 
       {/* View Controls & Tools */}
