@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import QRScanner from './QRScanner';
-import { checkInCustomer, addAndCheckIn, getAttendanceList, getCustomersLite } from '../utils/googleSheets';
+import { checkInCustomer, addAndCheckIn, getAttendanceList } from '../utils/googleSheets';
 import { toast } from 'react-hot-toast';
 import '../App.css';
 import GuestBookList from './GuestBookList';
 import GuestBookForm from './GuestBookForm';
+import { useCustomer } from '../context/CustomerContext'; // UNIFIED DATA SOURCE
+import { Icons } from './Icons'; // Unified Icons
 
 export default function GuestBook() {
+    const { customers, syncCustomers, isSyncing } = useCustomer(); // USE CONTEXT
     const [activeTab, setActiveTab] = useState('checkin'); // 'checkin' | 'list'
 
     // Data States
     const [attendees, setAttendees] = useState([]);
-    const [allCustomers, setAllCustomers] = useState([]); // Cache for search
     const [loading, setLoading] = useState(false);
-    const [dataLoaded, setDataLoaded] = useState(false); // Flag if customers loaded
 
-    // Manual / Search State - Default TRUE (Search First Flow)
+    // Manual / Search State
     const [showManual, setShowManual] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
@@ -39,29 +40,54 @@ export default function GuestBook() {
         }
     }, [activeTab]);
 
-    // Load all customers once for search capability
+    // SMART SEARCH LOGIC (Unified with CustomerSearch)
     useEffect(() => {
-        if (showManual && !dataLoaded) {
-            fetchCustomers();
-        }
-    }, [showManual]);
-
-    // Search Logic
-    useEffect(() => {
-        if (!searchQuery.trim() || !dataLoaded) {
+        if (!searchQuery.trim()) {
             setSearchResults([]);
             return;
         }
 
-        const query = searchQuery.toUpperCase();
-        const results = allCustomers.filter(c =>
-            (c.nama && c.nama.includes(query)) ||
-            (c.id && c.id.includes(query)) ||
-            (c.kota && c.kota.includes(query))
-        ).slice(0, 5); // Limit 5 suggestions
+        const query = searchQuery.toLowerCase().trim();
+        const terms = query.split(/\s+/).filter(Boolean);
+
+        // Map customers to { customer, score }
+        const scoredResults = customers.map(c => {
+            let score = 0;
+            const cId = String(c.id || '').toLowerCase();
+            const cName = String(c.nama || '').toLowerCase();
+            const cCity = String(c.kota || '').toLowerCase();
+
+            // A. ID Match
+            if (cId === query) score += 100;
+            else if (cId.includes(query)) score += 80;
+
+            // B. Name Match
+            if (cName === query) score += 60;
+            else if (cName.startsWith(query)) score += 50;
+            else if (cName.includes(query)) score += 20;
+
+            // C. Term Matching
+            const allTermsMatch = terms.every(term => {
+                let termMatched = false;
+                if (cName.includes(term)) { score += 5; termMatched = true; }
+                if (cCity.includes(term)) { score += 10; termMatched = true; }
+                if (cId.includes(term)) { termMatched = true; }
+                return termMatched;
+            });
+
+            if (!allTermsMatch) return { c, score: -1 };
+            return { c, score };
+        });
+
+        // Filter & Sort & Limit
+        const results = scoredResults
+            .filter(item => item.score > 0)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 5) // Suggest top 5 relevant
+            .map(item => item.c);
 
         setSearchResults(results);
-    }, [searchQuery, allCustomers, dataLoaded]);
+    }, [searchQuery, customers]);
 
     const fetchAttendance = async () => {
         setLoading(true);
@@ -74,29 +100,13 @@ export default function GuestBook() {
         }
     };
 
-    const fetchCustomers = async () => {
-        const toastId = toast.loading('Memuat data customer...');
-        try {
-            const res = await getCustomersLite(); // Use Lite version
-            if (res.success) {
-                setAllCustomers(res.data); // data: [{id, nama, kota, ...}]
-                setDataLoaded(true);
-                toast.dismiss(toastId);
-            } else {
-                toast.error('Gagal load database');
-            }
-        } catch (e) {
-            toast.error('Network Error');
-        }
-    };
-
     const handleScan = async (data) => {
         // data format: { it: 'ID', nt: 'Name', at: 'City', ws: 'Cabang' ... }
         const customer = {
             id: data.it,
             nama: data.nt,
             kota: data.at || '',
-            cabang: data.ws || '',
+            cabang: manualForm.cabang || data.ws || '', // Prioritize selected branch event
         };
         await performCheckIn(customer);
     };
@@ -141,7 +151,8 @@ export default function GuestBook() {
                 // Stick Branch, Reset others
                 setManualForm(prev => ({ ...prev, nama: '', kota: '', hp: '' }));
                 setSearchQuery(''); // Reset search
-                // Keep manual mode open, ready for next input
+                // Sync to update global list if possible (silent)
+                syncCustomers(true);
             } else {
                 toast.error(`Gagal: ${res.error}`, { id: toastId });
             }
@@ -170,27 +181,30 @@ export default function GuestBook() {
 
     return (
         <div className="page-card" style={{ maxWidth: 800, margin: '0 auto' }}>
-            <div className="guestbook-header" style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 20,
-                borderBottom: '1px solid #eee',
-                paddingBottom: 15
-            }}>
-                <h2 style={{ margin: 0, color: '#D4AF37' }}>📅 Buku Tamu</h2>
-                <div className="tabs" style={{ display: 'flex', gap: 10 }}>
+            {/* UNIFIED HEADER */}
+            <div className="search-header-container" style={{ marginBottom: 20 }}>
+                <div style={{ flex: 1 }}>
+                    <h2 style={{ margin: 0, color: '#D4AF37', fontFamily: 'var(--font-brand)', fontSize: '1.8rem' }}>
+                        Buku Tamu
+                    </h2>
+                    <p style={{ margin: 0, fontSize: 12, color: '#888' }}>
+                        Pilih Mode Scan atau Cek List Kehadiran
+                    </p>
+                </div>
+
+                {/* UNIFIED TABS (Segmented Control) */}
+                <div className="view-toggles">
                     <button
+                        className={`view-btn ${activeTab === 'checkin' ? 'active' : ''}`}
                         onClick={() => setActiveTab('checkin')}
-                        style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: activeTab === 'checkin' ? '#D4AF37' : '#eee', color: activeTab === 'checkin' ? 'white' : '#666', fontWeight: 'bold', cursor: 'pointer' }}
                     >
-                        Scan / Input
+                        <Icons.Scan size={16} /> Scan / Input
                     </button>
                     <button
+                        className={`view-btn ${activeTab === 'list' ? 'active' : ''}`}
                         onClick={() => setActiveTab('list')}
-                        style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: activeTab === 'list' ? '#D4AF37' : '#eee', color: activeTab === 'list' ? 'white' : '#666', fontWeight: 'bold', cursor: 'pointer' }}
                     >
-                        List Hadir
+                        <span style={{ fontSize: 16 }}>📋</span> List Hadir
                     </button>
                 </div>
             </div>
@@ -205,12 +219,12 @@ export default function GuestBook() {
                             </div>
 
                             <div style={{ textAlign: 'center', marginTop: 20 }}>
-                                <p style={{ color: '#666', marginBottom: 10 }}>Scanner gagal atau manual?</p>
                                 <button
+                                    className="action-btn secondary"
                                     onClick={() => setShowManual(true)}
-                                    style={{ padding: '12px 24px', background: '#333', color: 'white', border: 'none', borderRadius: 8, fontSize: 14, cursor: 'pointer' }}
+                                    style={{ padding: '12px 24px', width: 'auto' }}
                                 >
-                                    🔍 Kembali ke Input Manual
+                                    <Icons.Search size={16} /> Kembali ke Input Manual
                                 </button>
                             </div>
                         </>
@@ -220,7 +234,7 @@ export default function GuestBook() {
                             setShowScanner={(val) => setShowManual(!val)} // Invert logic for clarity
                             searchQuery={searchQuery}
                             setSearchQuery={setSearchQuery}
-                            searchResults={searchResults}
+                            searchResults={searchResults} // Uses new Weighted Results
                             handleSelectCustomer={handleSelectCustomer}
                             manualForm={manualForm}
                             setManualForm={setManualForm}

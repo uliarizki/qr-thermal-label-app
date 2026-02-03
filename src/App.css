@@ -455,3 +455,9 @@ textarea {
     padding: 16px 12px;
   }
 }
+
+/* Utility: Table Row Hover */
+.table-row-hover:hover {
+  background-color: #fcfcfc;
+  transition: background-color 0.2s;
+}

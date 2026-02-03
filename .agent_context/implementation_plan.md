@@ -179,3 +179,14 @@ Optimize the application for mobile usage (Smartphone/Tablet) to ensure usabilit
 - **Steps:** Make the step indicator horizontal scrollable or compact on mobile.
 - **Table:** Ensure the preview table scrolls horizontally without breaking layout.
 
+# Feature: GuestBook Refactor (Unification)
+## Goal
+Standardize `GuestBook.jsx` to use the same Data Context and UI Design System as the rest of the app.
+
+## Proposed Changes
+### [MODIFY] [GuestBook.jsx](file:///d:/PROGRAM/qr-thermal-label-app/src/components/GuestBook.jsx)
+- **Data Source:** Switch from `getCustomersLite` (API) to `useCustomer()` (Context).
+- **UI:** Replace inline styles with `view-toggles` and `page-card` classes.
+- **Search:** Implement the same "Weighted Scoring" logic for manual check-in search suggestions.
+- **Scan Logic:** Reuse `CustomerContext` primarily for matching scans.
+
