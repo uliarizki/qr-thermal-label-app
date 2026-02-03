@@ -140,6 +140,10 @@
   gap: 8px;
   margin-bottom: 20px;
   justify-content: flex-end;
+  flex-wrap: nowrap;
+  /* Force single row */
+  overflow-x: auto;
+  /* Safety scroll if extremely small */
 }
 
 .view-btn:hover {
@@ -151,6 +155,23 @@
   background: var(--primary-gold);
   color: var(--premium-black);
   border-color: var(--primary-gold);
+}
+
+@media (max-width: 600px) {
+
+  /* Make view buttons compact to fit on one line */
+  .view-toggles .view-btn,
+  .view-controls .view-btn {
+    padding: 0 10px;
+    /* Reduced padding */
+    font-size: 13px;
+    height: 40px;
+    /* Keep accessible height */
+  }
+
+  .view-toggles {
+    gap: 2px;
+  }
 }
 
 .last-updated {

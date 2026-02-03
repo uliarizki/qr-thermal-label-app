@@ -316,10 +316,6 @@ export default function CustomerSearch({
         <p className="no-data">❌ Tidak ada hasil. Coba "Sync" jika data barusan diinput.</p>
       )}
 
-      {!isSyncing && !searchQuery.trim() && (
-        <p className="no-data">💡 Ketik untuk mencari dari local data</p>
-      )}
-
       {/* CUSTOMER LIST: Only render if we have a query and results */}
       {filteredCustomers.length > 0 && (
         <div className={`customer-list ${activeView}-view`}>
