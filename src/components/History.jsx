@@ -133,10 +133,10 @@ export default function History({ onSelect }) {
           {history.length > 0 && (
             <button
               onClick={() => setShowClearConfirm(true)}
-              className="clear-history-btn"
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              className="action-btn danger"
+              style={{ padding: '8px 12px', fontSize: 13 }}
             >
-              <Icons.Close size={16} /> Hapus
+              <Icons.Close size={14} /> Hapus
             </button>
           )}
         </div>
@@ -146,12 +146,12 @@ export default function History({ onSelect }) {
         <div className="clear-confirm">
           <p>Yakin hapus semua history?</p>
           <div className="clear-confirm-buttons">
-            <button onClick={handleClear} className="confirm-btn">
+            <button onClick={handleClear} className="action-btn danger">
               Ya, Hapus
             </button>
             <button
               onClick={() => setShowClearConfirm(false)}
-              className="cancel-btn"
+              className="action-btn secondary"
             >
               Batal
             </button>
