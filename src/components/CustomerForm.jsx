@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Icons } from './Icons';
 import './AddCustomer.css';
 import { useCustomer } from '../context/CustomerContext';
+import { generateCustomerId } from '../utils/idGenerator';
 
 export default function CustomerForm({
     initialValues,
@@ -65,8 +66,16 @@ export default function CustomerForm({
         }));
     };
 
-    // Access customers for duplicate check
+    // Access customers for duplicate check and ID generation
     const { customers } = useCustomer();
+
+    // Auto-Generate ID when City changes (only if ID is empty and NOT in edit mode)
+    const handleCityBlur = () => {
+        if (!isEditMode && !formData.id && formData.kota) {
+            const newId = generateCustomerId(formData.kota, customers || []);
+            setFormData(prev => ({ ...prev, id: newId }));
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -177,7 +186,26 @@ export default function CustomerForm({
                             style={isEditMode ? { background: '#f5f5f5', color: '#999' } : {}}
                         />
                         {isEditMode && <small>💡 ID tidak dapat diubah</small>}
-                        {!isEditMode && <small>💡 Abaikan jika ID akan dibuat belakangan</small>}
+                        {!isEditMode && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <small>💡 Otomatis dibuat saat isi Kota</small>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (formData.kota) {
+                                            const newId = generateCustomerId(formData.kota, customers || []);
+                                            setFormData(prev => ({ ...prev, id: newId }));
+                                        } else {
+                                            // Optional: Alert user to fill city first
+                                            // toast.error('Isi Kota terlebih dahulu');
+                                        }
+                                    }}
+                                    style={{ background: 'none', border: 'none', color: '#D4AF37', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}
+                                >
+                                    ↻ Generate Ulang
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="form-group">
