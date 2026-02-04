@@ -273,6 +273,20 @@ export async function editCustomer(customerData) {
   return { success: true, data: result.data };
 }
 
+// Delete existing customer
+export async function deleteCustomer(id) {
+  if (!id) return { success: false, error: 'ID required' };
+
+  const result = await callApi('deleteCustomer', { id });
+
+  if (!result.success) {
+    return { success: false, error: result.error };
+  }
+
+  clearCache();
+  return { success: true };
+}
+
 export function clearCache() {
   customerCache = null;
   if (typeof window !== 'undefined') {

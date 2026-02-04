@@ -7,7 +7,7 @@ import DigitalCard from './DigitalCard';
 import CustomerForm from './CustomerForm';
 import { Icons } from './Icons';
 import { addHistory } from '../utils/history';
-import { editCustomer } from '../utils/googleSheets';
+import { editCustomer, deleteCustomer } from '../utils/googleSheets';
 import { shareOrDownload, downloadBlob } from '../utils/shareUtils';
 import { generateCardBlob } from '../utils/cardGenerator';
 import { useModalHistory } from '../hooks/useModalHistory';
@@ -125,6 +125,31 @@ export default function CustomerDetailModal({ customer, onClose }) {
         }
     };
 
+    const handleDelete = async () => {
+        if (!isOnline) {
+            toast.error('Hapus data hanya bisa saat ONLINE');
+            return;
+        }
+
+        if (window.confirm(`⚠️ Yakin ingin MENGHAPUS customer ini?\n\n${customer.nama}\n(${customer.kota})\n\nTindakan ini tidak dapat dibatalkan!`)) {
+            const toastId = toast.loading('Menghapus data...');
+            try {
+                const res = await deleteCustomer(customer.id);
+                if (res.success) {
+                    toast.success('Data berhasil dihapus', { id: toastId });
+                    handleManualClose();
+                    // Optional: Trigger global refresh? The list is cached, so might need a forced reload next time or manual state update if possible.
+                    // But typically clearing cache (done in utils) + close is enough for next fetch.
+                    if (typeof window !== 'undefined') window.location.reload(); // Simple brute force to refresh list
+                } else {
+                    toast.error('Gagal hapus: ' + res.error, { id: toastId });
+                }
+            } catch (e) {
+                toast.error('Error deleting data', { id: toastId });
+            }
+        }
+    };
+
     if (!customer) return null;
 
     return (
@@ -146,6 +171,19 @@ export default function CustomerDetailModal({ customer, onClose }) {
                                 title={isOnline ? "Edit Customer" : "Offline - Edit tidak tersedia"}
                             >
                                 <Icons.Edit size={20} />
+                            </button>
+                        )}
+                        {!isEditing && customer.id && (
+                            <button
+                                onClick={handleDelete}
+                                style={{
+                                    background: 'none', border: 'none', cursor: isOnline ? 'pointer' : 'not-allowed',
+                                    color: isOnline ? '#ef4444' : '#ccc', display: 'flex', alignItems: 'center',
+                                    opacity: isOnline ? 1 : 0.5
+                                }}
+                                title={isOnline ? "Hapus Customer" : "Offline - Hapus tidak tersedia"}
+                            >
+                                <Icons.Close size={20} />
                             </button>
                         )}
                         <button className="close-btn" onClick={isEditing ? () => setIsEditing(false) : handleManualClose}>
