@@ -80,13 +80,26 @@ export default function CustomerForm({
     const handleSubmit = (e) => {
         e.preventDefault();
 
-        // Uppercase Logic
+        // 1. Force ID Generation if Empty (Safety Net)
+        let finalId = formData.id;
+        if (!isEditMode && !finalId && formData.kota) {
+            finalId = generateCustomerId(formData.kota, customers || []);
+            // Update state for UI immediately (though component might unmount/reset)
+            setFormData(prev => ({ ...prev, id: finalId }));
+        }
+
+        // 2. Prepare Data
         const upperCasedData = {};
         Object.keys(formData).forEach(key => {
-            upperCasedData[key] = typeof formData[key] === 'string' ? formData[key].toUpperCase() : formData[key];
+            let val = formData[key];
+
+            // Use the forced ID if 'id' key
+            if (key === 'id') val = finalId;
+
+            upperCasedData[key] = typeof val === 'string' ? val.toUpperCase() : val;
         });
 
-        // DUPLICATE CHECK (Only in Add Mode)
+        // 3. DUPLICATE CHECK (Only in Add Mode)
         if (!isEditMode && customers) {
             const isDuplicate = customers.some(c =>
                 c.nama === upperCasedData.nama &&
