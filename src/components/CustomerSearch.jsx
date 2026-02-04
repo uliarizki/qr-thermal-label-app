@@ -30,7 +30,7 @@ export default function CustomerSearch({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeView, setActiveView] = useState('list');
   const [isSearching, setIsSearching] = useState(false);
-  const [filteredCustomers, setFilteredCustomers] = useState([]);
+  // const [filteredCustomers, setFilteredCustomers] = useState([]); // REMOVED: Derived via useMemo
   const [visibleLimit, setVisibleLimit] = useState(50); // Increased from 20 to 50
   const [showBatchModal, setShowBatchModal] = useState(false);
   const loaderRef = useRef(null); // Sentinel Ref
@@ -92,90 +92,85 @@ export default function CustomerSearch({
     };
   }, []);
 
-  // 5. Smart Search Logic (Weighted Scoring)
+  // 5. Debounce Query
+  const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
+
   useEffect(() => {
-    // Start searching immediately when query changes or branch changes
-    if (searchQuery.trim() || activeBranch !== 'ALL') {
-      setIsSearching(true);
-    } else {
-      setIsSearching(false);
-      setFilteredCustomers([]);
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  // 6. Memoized Filtering Logic
+  const filteredCustomers = React.useMemo(() => {
+    const query = debouncedQuery.toLowerCase().trim();
+
+    // A. If no query, return all (or filtered by branch)
+    if (!query && activeBranch === 'ALL') {
+      return customers;
     }
 
-    const timer = setTimeout(() => {
-      const query = searchQuery.toLowerCase().trim();
+    // B. Filter by Branch first (Hard Filter)
+    let preFiltered = customers;
+    if (activeBranch !== 'ALL') {
+      preFiltered = customers.filter(c => (c.cabang || '').toUpperCase().includes(activeBranch));
+    }
 
-      // IF no query, show ALL (filtered by branch if active)
-      if (!query && activeBranch === 'ALL') {
-        setFilteredCustomers(customers);
-        setIsSearching(false);
-        return;
-      }
+    if (!query) return preFiltered;
 
-      // If we have a query OR branch filter:
-      const terms = query.split(/\s+/).filter(Boolean);
+    // C. Relevance Scoring
+    const terms = query.split(/\s+/).filter(Boolean);
 
-      // Map customers to { customer, score }
-      const scoredResults = customers.map(c => {
-        let score = 0;
+    // Helper for scoring
+    const calculateScore = (c) => {
+      let score = 0;
+      const cId = String(c.id || '').toLowerCase();
+      const cName = String(c.nama || '').toLowerCase();
+      const cCity = String(c.kota || '').toLowerCase();
+      const cBranch = String(c.cabang || '').toLowerCase();
+      const cMeta = `${c.pabrik || ''} ${c.sales || ''}`.toLowerCase();
 
-        // 1. Branch Filter Scope (Hard Filter - If fails, score is 0/Exclude)
-        if (activeBranch !== 'ALL') {
-          const cBranch = (c.cabang || '').toUpperCase();
-          if (!cBranch.includes(activeBranch)) return { c, score: -1 }; // Exclude
-        }
+      // I. ID Match (Highest)
+      if (cId === query) score += 100;
+      else if (cId.includes(query)) score += 80;
 
-        // 2. If no text query, but passed branch filter -> keep it (score 1 to include)
-        if (!query) return { c, score: 1 };
+      // II. Name Match
+      if (cName === query) score += 60;
+      else if (cName.startsWith(query)) score += 50;
+      else if (cName.includes(query)) score += 20;
 
-        // 3. Relevance Scoring
-        const cId = String(c.id || '').toLowerCase();
-        const cName = String(c.nama || '').toLowerCase();
-        const cCity = String(c.kota || '').toLowerCase();
-        const cBranch = String(c.cabang || '').toLowerCase();
-        const cMeta = `${c.pabrik || ''} ${c.sales || ''}`.toLowerCase();
-
-        // A. ID Match (Highest Priority)
-        if (cId === query) score += 100;
-        else if (cId.includes(query)) score += 80;
-
-        // B. Name Match
-        if (cName === query) score += 60; // Exact Name
-        else if (cName.startsWith(query)) score += 50; // Starts With
-        else if (cName.includes(query)) score += 20; // Contains
-
-        // C. Term Matching (for "Name City" support)
-        // Check if ALL terms match something in the record
-        // Increased score for each term matched in specific fields
-        const allTermsMatch = terms.every(term => {
-          let termMatched = false;
-
-          if (cName.includes(term)) { score += 5; termMatched = true; }
-          if (cCity.includes(term)) { score += 10; termMatched = true; } // Boost city relevance
-          if (cBranch.includes(term)) { score += 5; termMatched = true; }
-          if (cId.includes(term)) { termMatched = true; }
-          if (cMeta.includes(term)) { score += 2; termMatched = true; }
-
-          return termMatched;
-        });
-
-        if (!allTermsMatch) return { c, score: -1 }; // If any term misses, exclude
-
-        return { c, score };
+      // III. Term Matching
+      const allTermsMatch = terms.every(term => {
+        let matched = false;
+        if (cName.includes(term)) { score += 5; matched = true; }
+        if (cCity.includes(term)) { score += 10; matched = true; }
+        if (cBranch.includes(term)) { score += 5; matched = true; }
+        if (cId.includes(term)) { matched = true; }
+        if (cMeta.includes(term)) { score += 2; matched = true; }
+        return matched;
       });
 
-      // Filter & Sort
-      const results = scoredResults
-        .filter(item => item.score > 0)
-        .sort((a, b) => b.score - a.score) // Descending
-        .map(item => item.c);
+      if (!allTermsMatch) return -1;
+      return score;
+    };
 
-      setFilteredCustomers(results);
-      setIsSearching(false); // Search done
-    }, 300);
+    return preFiltered
+      .map(c => ({ c, score: calculateScore(c) }))
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.c);
 
-    return () => clearTimeout(timer);
-  }, [searchQuery, activeBranch, customers]);
+  }, [customers, activeBranch, debouncedQuery]);
+
+  // 7. Update Searching State (Sync UI)
+  useEffect(() => {
+    setIsSearching(false);
+  }, [filteredCustomers]);
+
+  useEffect(() => {
+    if (searchQuery !== debouncedQuery) setIsSearching(true);
+  }, [searchQuery, debouncedQuery]);
 
 
   // 6. Handle Selection

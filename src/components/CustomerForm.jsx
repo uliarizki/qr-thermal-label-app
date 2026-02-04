@@ -260,7 +260,7 @@ export default function CustomerForm({
                 </div>
 
                 {/* BUTTON */}
-                <button type="submit" disabled={isLoading} className="submit-btn" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <button type="submit" disabled={isLoading} className="action-btn primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                     {isLoading ? (
                         <>
                             <span className="spin"><Icons.Refresh size={20} /></span>

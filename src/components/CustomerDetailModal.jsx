@@ -162,28 +162,24 @@ export default function CustomerDetailModal({ customer, onClose }) {
                     <div style={{ display: 'flex', gap: 10 }}>
                         {!isEditing && customer.id && (
                             <button
+                                className={`action-btn ${isOnline ? 'secondary' : 'disabled'}`}
                                 onClick={() => isOnline ? setIsEditing(true) : toast.error('Edit tidak tersedia saat offline')}
-                                style={{
-                                    background: 'none', border: 'none', cursor: isOnline ? 'pointer' : 'not-allowed',
-                                    color: isOnline ? '#f59e0b' : '#ccc', display: 'flex', alignItems: 'center',
-                                    opacity: isOnline ? 1 : 0.5
-                                }}
+                                disabled={!isOnline}
                                 title={isOnline ? "Edit Customer" : "Offline - Edit tidak tersedia"}
+                                style={{ padding: '8px', minWidth: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                                 <Icons.Edit size={20} />
                             </button>
                         )}
                         {!isEditing && customer.id && (
                             <button
+                                className={`action-btn ${isOnline ? 'danger' : 'disabled'}`}
                                 onClick={handleDelete}
-                                style={{
-                                    background: 'none', border: 'none', cursor: isOnline ? 'pointer' : 'not-allowed',
-                                    color: isOnline ? '#ef4444' : '#ccc', display: 'flex', alignItems: 'center',
-                                    opacity: isOnline ? 1 : 0.5
-                                }}
+                                disabled={!isOnline}
                                 title={isOnline ? "Hapus Customer" : "Offline - Hapus tidak tersedia"}
+                                style={{ padding: '8px', minWidth: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
-                                <Icons.Close size={20} />
+                                <Icons.Trash size={20} />
                             </button>
                         )}
                         <button className="close-btn" onClick={isEditing ? () => setIsEditing(false) : handleManualClose}>
