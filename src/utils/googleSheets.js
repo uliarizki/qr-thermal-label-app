@@ -27,6 +27,11 @@ async function callApi(action, payload = null) {
     return { success: false, error: 'Configuration Error: VITE_GAS_WEBAPP_URL is missing or invalid' };
   }
 
+  // 0. STRICT OFFLINE CHECK
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    return { success: false, error: 'OFFLINE_MODE: Tidak ada koneksi internet.' };
+  }
+
   try {
     // 1. Setup Parameters
     // We send 'action' via URL query param for maximum reliability with Google Apps Script
@@ -55,10 +60,10 @@ async function callApi(action, payload = null) {
     console.error('Error callApi:', error);
 
     // --- GRACEFUL FALLBACK FOR CORS/NETWORK ERROR ---
-    // Kasus: Google Apps Script sering kena blokir CORS oleh browser saat redirect 302,
-    // padahal data sebenarnya SUKSES masuk ke Spreadsheet.
-    // Solusi: Jika errornya "Failed to fetch", kita anggap sukses (False Alarm).
-    if (error.message === 'Failed to fetch' || error.message.includes('NetworkError')) {
+    // Only apply fallback if we are ONLINE. If offline, it's a real error.
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+    if (isOnline && (error.message === 'Failed to fetch' || error.message.includes('NetworkError'))) {
       console.warn('⚠️ CORS/Network Error detected on', action, '- Assuming success via Fallback.');
       return {
         success: true,

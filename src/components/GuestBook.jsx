@@ -7,10 +7,12 @@ import GuestBookList from './GuestBookList';
 import GuestBookForm from './GuestBookForm';
 import { useCustomer } from '../context/CustomerContext'; // UNIFIED DATA SOURCE
 import { Icons } from './Icons'; // Unified Icons
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 
 export default function GuestBook() {
     const { customers, syncCustomers, isSyncing } = useCustomer(); // USE CONTEXT
     const [activeTab, setActiveTab] = useState('checkin'); // 'checkin' | 'list'
+    const { isOnline } = useNetworkStatus();
 
     // Data States
     const [attendees, setAttendees] = useState([]);
@@ -214,6 +216,11 @@ export default function GuestBook() {
                     {!showManual ? (
                         /* SCANNER VIEW */
                         <>
+                            {!isOnline && (
+                                <div style={{ background: '#fef2f2', padding: 12, borderRadius: 8, color: '#991b1b', marginBottom: 15, fontSize: 13, border: '1px solid #fecaca' }}>
+                                    ⚠️ Offline Mode: Scan QR mungkin tidak dapat mencatat kehadiran ke server.
+                                </div>
+                            )}
                             <div style={{ marginBottom: 20 }}>
                                 <QRScanner onScan={handleScan} />
                             </div>
@@ -240,6 +247,7 @@ export default function GuestBook() {
                             setManualForm={setManualForm}
                             handleManualSubmit={handleManualSubmit}
                             setBranch={setBranch}
+                            isOnline={isOnline}
                         />
                     )}
                 </div>

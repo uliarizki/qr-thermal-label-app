@@ -12,7 +12,8 @@ export default function GuestBookForm({
     manualForm,
     setManualForm,
     handleManualSubmit,
-    setBranch
+    setBranch,
+    isOnline = true // Default true to prevent breaking if prop missing
 }) {
     return (
         <div className="manual-form" style={{ padding: 20, background: '#f8f9fa', borderRadius: 12, border: '1px solid #eee' }}>
@@ -79,8 +80,16 @@ export default function GuestBookForm({
                                         </div>
                                         <div style={{ fontSize: 12, color: '#666' }}>{cust.kota} | <span style={{ fontFamily: 'monospace' }}>{cust.id}</span></div>
                                     </div>
-                                    <button className="action-btn primary" style={{ padding: '6px 12px', fontSize: 12, minWidth: 'auto', height: 30 }}>
-                                        Pilih
+                                    <button
+                                        className="action-btn primary"
+                                        style={{
+                                            padding: '6px 12px', fontSize: 12, minWidth: 'auto', height: 30,
+                                            opacity: isOnline ? 1 : 0.5, cursor: isOnline ? 'pointer' : 'not-allowed'
+                                        }}
+                                        onClick={() => isOnline ? handleSelectCustomer(cust) : null}
+                                        title={isOnline ? "Pilih" : "Offline"}
+                                    >
+                                        {isOnline ? 'Pilih' : 'Offline'}
                                     </button>
                                 </div>
                             ))
@@ -171,9 +180,16 @@ export default function GuestBookForm({
                 <button
                     type="submit"
                     className="login-btn"
-                    style={{ marginTop: 10, background: 'linear-gradient(135deg, #D4AF37 0%, #B59024 100%)', color: '#000' }}
+                    style={{
+                        marginTop: 10,
+                        background: isOnline ? 'linear-gradient(135deg, #D4AF37 0%, #B59024 100%)' : '#ccc',
+                        color: isOnline ? '#000' : '#666',
+                        cursor: isOnline ? 'pointer' : 'not-allowed'
+                    }}
+                    disabled={!isOnline}
+                    title={isOnline ? "Simpan" : "Offline - Tidak dapat menyimpan"}
                 >
-                    Simpan & Hadir
+                    {isOnline ? 'Simpan & Hadir' : 'Offline - Tidak Tersedia'}
                 </button>
             </form>
         </div>

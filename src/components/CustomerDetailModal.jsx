@@ -11,12 +11,14 @@ import { editCustomer } from '../utils/googleSheets';
 import { shareOrDownload, downloadBlob } from '../utils/shareUtils';
 import { generateCardBlob } from '../utils/cardGenerator';
 import { useModalHistory } from '../hooks/useModalHistory';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 
 export default function CustomerDetailModal({ customer, onClose }) {
     const [activeTab, setActiveTab] = useState('thermal'); // 'thermal' | 'digital'
     const [isDownloading, setIsDownloading] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const { isOnline } = useNetworkStatus();
 
     const digitalCardRef = useRef(null);
 
@@ -135,12 +137,13 @@ export default function CustomerDetailModal({ customer, onClose }) {
                     <div style={{ display: 'flex', gap: 10 }}>
                         {!isEditing && customer.id && (
                             <button
-                                onClick={() => setIsEditing(true)}
+                                onClick={() => isOnline ? setIsEditing(true) : toast.error('Edit tidak tersedia saat offline')}
                                 style={{
-                                    background: 'none', border: 'none', cursor: 'pointer',
-                                    color: '#f59e0b', display: 'flex', alignItems: 'center'
+                                    background: 'none', border: 'none', cursor: isOnline ? 'pointer' : 'not-allowed',
+                                    color: isOnline ? '#f59e0b' : '#ccc', display: 'flex', alignItems: 'center',
+                                    opacity: isOnline ? 1 : 0.5
                                 }}
-                                title="Edit Customer"
+                                title={isOnline ? "Edit Customer" : "Offline - Edit tidak tersedia"}
                             >
                                 <Icons.Edit size={20} />
                             </button>
