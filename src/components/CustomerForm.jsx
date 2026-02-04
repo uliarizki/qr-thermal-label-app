@@ -69,21 +69,21 @@ export default function CustomerForm({
     // Access customers for duplicate check and ID generation
     const { customers } = useCustomer();
 
-    // Auto-Generate ID when City changes (only if ID is empty and NOT in edit mode)
-    const handleCityBlur = () => {
-        if (!isEditMode && !formData.id && formData.kota) {
-            const newId = generateCustomerId(formData.kota, customers || []);
+    // Auto-Generate ID when Branch changes (only if ID is empty and NOT in edit mode)
+    useEffect(() => {
+        if (!isEditMode && !formData.id && formData.cabang) {
+            const newId = generateCustomerId(formData.cabang, customers || []);
             setFormData(prev => ({ ...prev, id: newId }));
         }
-    };
+    }, [formData.cabang, isEditMode]); // We only want to trigger on branch change or mount
 
     const handleSubmit = (e) => {
         e.preventDefault();
 
         // 1. Force ID Generation if Empty (Safety Net)
         let finalId = formData.id;
-        if (!isEditMode && !finalId && formData.kota) {
-            finalId = generateCustomerId(formData.kota, customers || []);
+        if (!isEditMode && !finalId && formData.cabang) {
+            finalId = generateCustomerId(formData.cabang, customers || []);
             // Update state for UI immediately (though component might unmount/reset)
             setFormData(prev => ({ ...prev, id: finalId }));
         }
@@ -202,16 +202,13 @@ export default function CustomerForm({
                         {isEditMode && <small>💡 ID tidak dapat diubah</small>}
                         {!isEditMode && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <small>💡 Otomatis dibuat saat isi Kota</small>
+                                <small>💡 Otomatis dibuat sesuai Cabang</small>
                                 <button
                                     type="button"
                                     onClick={() => {
-                                        if (formData.kota) {
-                                            const newId = generateCustomerId(formData.kota, customers || []);
+                                        if (formData.cabang) {
+                                            const newId = generateCustomerId(formData.cabang, customers || []);
                                             setFormData(prev => ({ ...prev, id: newId }));
-                                        } else {
-                                            // Optional: Alert user to fill city first
-                                            // toast.error('Isi Kota terlebih dahulu');
                                         }
                                     }}
                                     style={{ background: 'none', border: 'none', color: '#D4AF37', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}

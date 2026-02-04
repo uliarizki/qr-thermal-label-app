@@ -3,78 +3,33 @@
  * Generates Customer IDs based on City and Random/Sequence logic.
  */
 
-const CITY_CODES = {
-    'SURABAYA': 'SBY',
-    'SEMARANG': 'SMG',
-    'JAKARTA': 'JKT',
-    'JOGJA': 'JOG',
-    'YOGYAKARTA': 'JOG',
-    'SOLO': 'SOC',
-    'SURAKARTA': 'SOC',
-    'BANDUNG': 'BDO',
-    'MALANG': 'MLG',
-    'DENPASAR': 'DPS',
-    'BALI': 'DPS',
-    'KUDUS': 'KDS',
-    'PATI': 'PTI',
-    'JEPARA': 'JPR',
-    'REMBANG': 'RBG',
-    'TEGAL': 'TGL',
-    'PEKALONGAN': 'PKL',
-    'PURWOKERTO': 'PWT',
-    'MAGELANG': 'MGL',
-    'MADIUN': 'MN',
-    'KEDIRI': 'KDR',
-    'BLITAR': 'BLT',
-    'PROBOLINGGO': 'PRO',
-    'PASURUAN': 'PAS',
-    'BANYUWANGI': 'BWI',
-    'JEMBER': 'JMR',
-    'LAMONGAN': 'LMG',
-    'GRESIK': 'GSK',
-    'SIDOARJO': 'SDA',
-    'MOJOKERTO': 'MJK',
-    'BEKASI': 'BKS',
-    'TANGERANG': 'TNG',
-    'DEPOK': 'DPK',
-    'BOGOR': 'BOO',
-    'SERANG': 'SRG',
-    'CILEGON': 'CLG',
-    'CIREBON': 'CBN',
-    'TASIKMALAYA': 'TSM',
-    'MEDAN': 'KNO', // Standardize to Airport code style or common usage
-    'PALEMBANG': 'PLM',
-    'LAMPUNG': 'TKG',
-    'PADANG': 'PDG',
-    'MAKASSAR': 'UPG',
-    'MANADO': 'MDC',
-    'PONTIANAK': 'PNK',
-    'BANJARMASIN': 'BDJ',
-    'BALIKPAPAN': 'BPN',
-    'SAMARINDA': 'SRI',
+const BRANCH_CODES = {
+    'BT SMG': 'SMG',
+    'BT JKT': 'JKT',
+    'BT SBY': 'SBY',
 };
 
 /**
- * Generate a unique ID based on City
+ * Generate a unique ID based on Branch
  * Format: [MMM][RRRR] (3 Letter Code + 4 Random Digits)
- * Example: SBY1024
- * @param {string} city - Input city name
+ * Example: SMG1024
+ * @param {string} branch - Input branch name (e.g. "BT SMG")
  * @param {Array} existingCustomers - List of existing customers to check for collision
  * @returns {string} Generated ID
  */
-export function generateCustomerId(city, existingCustomers = []) {
-    if (!city || typeof city !== 'string') return '';
+export function generateCustomerId(branch, existingCustomers = []) {
+    if (!branch || typeof branch !== 'string') return '';
 
-    const upperCity = city.trim().toUpperCase();
+    const upperBranch = branch.trim().toUpperCase();
 
     // 1. Get Prefix
-    let prefix = CITY_CODES[upperCity];
+    let prefix = BRANCH_CODES[upperBranch];
 
-    // Fallback: First 3 consonants or letters if not in map
+    // Fallback: Use raw letters if not in map
     if (!prefix) {
-        // Remove vowels to limit collision? Or just take first 3 chars.
-        // Let's take first 3 chars for simplicity, maybe remove spaces.
-        const clean = upperCity.replace(/[^A-Z]/g, '');
+        // e.g. "BT BANDUNG" -> "BAN" or "BT" removed?
+        // simple fallback: take first 3 alphanumeric chars
+        const clean = upperBranch.replace(/[^A-Z]/g, '');
         prefix = clean.substring(0, 3);
     }
 
