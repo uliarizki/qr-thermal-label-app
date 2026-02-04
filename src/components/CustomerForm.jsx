@@ -180,6 +180,7 @@ export default function CustomerForm({
                             name="id"
                             value={formData.id}
                             onChange={handleChange}
+                            onFocus={(e) => e.target.select()} // Auto-select all text on click/tap
                             placeholder="Kosongkan jika belum ada ID" // ID usually shouldn't be edited if it's the key, but user might want to fix it.
                             maxLength="20"
                             disabled={isEditMode} // Disable ID editing in Edit Mode to prevent breaking references
