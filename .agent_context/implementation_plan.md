@@ -15,103 +15,54 @@
 
 ---
 
-## 🎯 Prioritized Roadmap
+## 🎯 Prioritized Roadmap (Live Status)
 
-### Phase 1: Critical & Quick Wins ⚡
-*Target: 2-3 hours*
+### Phase 1: Critical & Quick Wins ⚡ (COMPLETED)
+- [x] **Move API URL to `.env`**
+- [x] **Add Online/Offline indicator**
+- [x] **Block Add Customer when offline**
+- [x] **Session expiry** (7 days)
+- [x] **Fix all toast dismissal issues**
 
-- [x] **Move API URL to `.env`** - Security best practice
-- [x] **Add Online/Offline indicator** - Show status in header
-- [x] **Block Add Customer when offline** - With clear message
-- [x] **Session expiry** - Auto-logout after 7 days idle
-- [x] **Fix all toast dismissal issues** - Consistent UX
+### Phase 2: Performance & Scale 📈 (MOSTLY COMPLETE)
+- [x] **Virtualization everywhere** (CustomerSearch, BatchModal)
+- [x] **Memoize list items** (CustomerCard)
+- [x] **Lazy load heavy components** (AdminPanel, GuestBook, BatchModal)
+- [x] **Local QR Generation**
+- [ ] **GuestBook Virtualization** (Low priority, currently standard list)
 
----
+### Phase 3: UI/UX Polish 🎨 (COMPLETED)
+- [x] **Responsive refinements** (Touch-friendly base, layout tweaks)
+- [x] **Consistent modal behavior**
+- [x] **Loading states everywhere**
+- [x] **Desktop enhancements** (Hover states)
+- [ ] **Keyboard shortcuts** (Ctrl+P, Esc) - *Pending*
 
-### Phase 2: Performance & Scale 📈
-*Target: 3-4 hours*
+### Phase 4: Architecture Cleanup 🏗️ (ONGOING)
+- [x] **Create CustomerContext**
+- [x] **Extract large components** (GuestBook refactor done)
+- [x] **Consolidate CSS** (Variables & scoped CSS)
+- [ ] **Add PropTypes** (Skipped in favor of rapid iteration)
 
-- [x] **Virtualization everywhere** - ~1000 items need windowing
-  - CustomerSearch ✅ (already done)
-  - GuestBook attendance list (if needed later)
-  - Batch Generator preview table
-- [x] **Memoize list items** - `React.memo` on card components
-- [x] **Lazy load heavy components** - AdminPanel, GuestBook, BatchModal
-- [x] **Local QR Generation** - Remove external API dependency
+### Phase 5: Testing & Verification 📚 (IN PROGRESS)
+- [x] **Unit tests** (idGenerator.js)
+- [ ] **Integration tests** (Auth flow)
+- [ ] **Documentation** (Inline JSDoc exists, README needs update)
 
----
-
-### Phase 3: UI/UX Polish 🎨
-*Target: 2-3 hours*
-
-- [ ] **Responsive refinements**
-  - Touch-friendly button sizes (min 44px)
-  - Mobile keyboard handling (input not hidden)
-  - Proper viewport meta
-- [ ] **Consistent modal behavior**
-  - Close on backdrop click
-  - Escape key to close
-  - Focus trap for accessibility
-- [ ] **Loading states everywhere**
-  - Skeleton loaders in modals
-  - Disabled buttons during async
-- [ ] **Desktop enhancements**
-  - Keyboard shortcuts (Ctrl+P for print, Esc to close)
-  - Hover states on cards
+### Phase 6: Printer & Batch Tools 🖨️ (COMPLETED)
+- [x] **Native Printer Context** (WebUSB/Bluetooth/Serial)
+- [x] **Batch ID Generator** (PDF/Canvas/ZIP)
+- [x] **Smart Format Detection** (Excel/CSV)
 
 ---
 
-### Phase 4: Architecture Cleanup 🏗️
-*Target: 4-5 hours (can be deferred)*
-
-- [ ] **Create CustomerContext** - Global state for customer data
-- [ ] **Extract large components**
-  - GuestBook → smaller subcomponents (only if actively used)
-  - AdminPanel → tabs as separate components
-- [ ] **Consolidate CSS** - Create design tokens file
-- [ ] **Add PropTypes** - Runtime type safety
-
----
-
-### Phase 5: Testing & Docs 📚
-*Target: 2-3 hours (optional)*
-
-- [ ] **Unit tests** - labelLayout.js, qrParser.js
-- [ ] **Integration tests** - Auth flow, Add Customer
-- [ ] **README update** - Setup, deployment, architecture
-- [ ] **Inline documentation** - JSDoc on key functions
-
----
-
-## 🚨 Issues by Priority
-
-### HIGH (Do First)
-1. Hardcoded API URL in `googleSheets.js`
-2. No offline indicator - user doesn't know when actions will fail
-3. Session never expires
-
-### MEDIUM (Do Soon)
-4. Batch modal table not virtualized (slow with many items)
-5. QR from external API (network dependency)
-6. No memoization on list items
-
-### LOW (Nice to Have)
-7. GuestBook component too large (but low priority feature)
-8. Multiple CSS files with redundancy
-9. No TypeScript
-
----
-
-## 📊 Estimated Total Effort
-
-| Phase | Hours | Priority |
+## 📊 Estimated Total Effort (Remaining)
+| Phase | Status | Priority |
 |-------|-------|----------|
-| Phase 1: Critical | 2-3h | 🔴 High |
-| Phase 2: Performance | 3-4h | 🟠 Medium |
-| Phase 3: UX Polish | 2-3h | 🟡 Medium |
-| Phase 4: Architecture | 4-5h | 🟢 Low |
-| Phase 5: Testing | 2-3h | ⚪ Optional |
-| **Total** | **13-18h** | |
+| Phase 4: Architecture | 🟡 Partial | Low |
+| Phase 5: Testing | ⚪ Pending | Optional |
+| **Firebase Migration** | 🟣 Planned | **Next Major** |
+
 
 ---
 

@@ -11,6 +11,9 @@
     - Added `initEppos()` in `escPosEncoder.js` to automatically set **Density/Darkness** and **Speed** for RPP02 printers.
 - **Result**: Printer now connects via "Connect Printer" and prints with optimal settings automatically.
 - **Docs**: Created `printer_setup_guide.md` for end-users.
+- **UI Standardization:** Updated all lingering legacy buttons to use the modern `.action-btn` class for a consistent look and feel across the app (Add Customer, Detail Modal).
+- **Code Cleanup:** Removed unused imports and centralized styles.
+- **Logic Validation:** Added `idGenerator.test.js` to strictly verify branch mapping prefixes and collision avoidance logic. Tests passed successfully.
 
 ### 2. Batch ID Generator
 - **Updates**:
