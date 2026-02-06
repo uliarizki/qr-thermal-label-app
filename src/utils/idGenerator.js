@@ -45,15 +45,15 @@ export function generateCustomerId(branch, existingCustomers = []) {
     const existingIds = new Set(existingCustomers.map(c => c.id));
 
     do {
-        // Random 4 digit number: 1000 - 9999
-        const randomNum = Math.floor(1000 + Math.random() * 9000);
+        // Random 6 digit number: 100000 - 999999
+        const randomNum = Math.floor(100000 + Math.random() * 900000);
         newId = `${prefix}${randomNum}`;
         attempts++;
     } while (existingIds.has(newId) && attempts < maxAttempts);
 
     if (attempts >= maxAttempts) {
         // Fallback if super unlucky (add timestamp suffix)
-        newId = `${prefix}${Date.now().toString().slice(-4)}`;
+        newId = `${prefix}${Date.now().toString().slice(-6)}`;
     }
 
     return newId;

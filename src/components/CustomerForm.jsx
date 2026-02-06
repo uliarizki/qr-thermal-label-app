@@ -71,7 +71,7 @@ export default function CustomerForm({
 
     // Auto-Generate ID when Branch changes (only if ID is empty and NOT in edit mode)
     useEffect(() => {
-        if (!isEditMode && !formData.id && formData.cabang) {
+        if (!isEditMode && formData.cabang) {
             const newId = generateCustomerId(formData.cabang, customers || []);
             setFormData(prev => ({ ...prev, id: newId }));
         }
