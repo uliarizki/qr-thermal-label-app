@@ -113,42 +113,44 @@ function MainApp() {
   };
 
   const handleScan = (data) => {
-    // Construct customer object from scan
-    // Handle if data is already an object (from QRScanner JSON parse)
+    let searchId = null;
+    let rawCode = null;
+
+    // 1. Extract Search Key
     if (typeof data === 'object' && data !== null) {
-      // Check if it's the expected format {it, nt, ...}
-      if (data.it || data.nt) {
-        setSelectedCustomer({
-          id: data.it || 'N/A',
-          nama: data.nt || 'Unknown',
-          kota: data.at || '',
-          sales: data.pt || '', // Map pt to sales
-          pabrik: data.kp || '', // Map kp to pabrik
-          cabang: data.ws || '', // Map ws to cabang
-          telp: data.np || '',
-          kode: JSON.stringify(data) // Keep raw data for QR regeneration
-        });
-        return;
-      }
+      // Structured QR (Offline-ready)
+      // data.it is the unique ID
+      searchId = data.it ? String(data.it).trim() : null;
+      rawCode = JSON.stringify(data);
+    } else {
+      // Raw String QR
+      searchId = String(data).trim();
+      rawCode = String(data);
     }
 
-    // Fallback for string IDs or unknown formats
-    const dataString = typeof data === 'string' ? data : JSON.stringify(data);
+    if (!searchId) {
+      toast.error('Format QR tidak valid: ID tidak ditemukan');
+      return;
+    }
 
-    // Try to find in existing customers
-    const found = customers.find(c => c.id === dataString || c.kode === dataString);
+    // 2. Search in Database (Strict Match)
+    // We search by ID first, then by the full raw code matches
+    const found = customers.find(c =>
+      String(c.id).trim() === searchId ||
+      c.kode === rawCode
+    );
 
+    // 3. Handle Result
     if (found) {
       setSelectedCustomer(found);
+      // Optional: Add history here if it wasn't added by scanner?
+      // QRScanner adds history itself, so we are good.
     } else {
-      // Create temp object for unknown/raw scan
-      setSelectedCustomer({
-        id: dataString,
-        nama: 'Unknown / Raw Scan',
-        kota: '-',
-        telp: '-',
-        cabang: '-',
-        kode: dataString
+      // NOT FOUND
+      // User reported behavior: "Should not be found"
+      // We block the modal and show error.
+      toast.error(`❌ Customer tidak terdaftar (ID: ${searchId})`, {
+        duration: 4000
       });
     }
   };
