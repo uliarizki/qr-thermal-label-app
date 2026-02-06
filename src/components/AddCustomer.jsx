@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { addCustomer } from '../services/customerService';
 import { validateCustomer } from '../schemas/validationSchemas';
 import { ApiError } from '../services/api';
 import { addHistory } from '../utils/history';
 import { useNetworkStatus } from '../hooks/useNetworkStatus';
+import { useCustomer } from '../context/CustomerContext';
 import { Icons } from './Icons';
 import CustomerForm from './CustomerForm'; // Import reused component
 import './AddCustomer.css';
@@ -13,6 +14,14 @@ export default function AddCustomer({ onAdd }) {
   const [loading, setLoading] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const { isOnline } = useNetworkStatus();
+  const { syncCustomers } = useCustomer();
+
+  // Auto-Sync on Mount (Silent) to ensure duplicate check is fresh
+  useEffect(() => {
+    if (isOnline) {
+      syncCustomers(true);
+    }
+  }, [isOnline, syncCustomers]);
 
   const handleAddSubmit = async (upperCasedData) => {
     // Block submission if offline
