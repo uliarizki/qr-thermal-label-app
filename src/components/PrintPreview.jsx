@@ -218,7 +218,7 @@ export default function PrintPreview({ data }) {
               H:
               <input
                 type="number"
-                value={useDefault ? 40 : printConfig.height}
+                value={useDefault ? 43 : printConfig.height}
                 onChange={e => setPrintConfig({ ...printConfig, height: Number(e.target.value) })}
                 style={{ width: '45px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
                 disabled={useDefault}
@@ -380,7 +380,7 @@ export default function PrintPreview({ data }) {
           >
             <LabelContent
               data={data}
-              labelSize={useDefault ? { ...printConfig, width: 55, height: 40 } : printConfig}
+              labelSize={useDefault ? { ...printConfig, width: 55, height: 43 } : printConfig}
             />
           </div>
         </div>

@@ -40,7 +40,10 @@ export function calculateLabelLayout(data, measureTextFn, config = {}) {
 
     // 3. Right Side Content Calculation
     const contentX = PADDING + QR_SIZE + GAP;
-    const maxContentWidth = WIDTH - contentX - 1; // 1mm right padding
+    // Printer Hardware Margin Safety: 
+    // Even if label is 55mm, printer might only print up to 52mm.
+    // Increased safety margin from 1mm to 3mm to prevent clipping on the right.
+    const maxContentWidth = WIDTH - contentX - 3;
 
     let currentY = PADDING + 3 + marginTop; // Start Y for text + Offset
 
