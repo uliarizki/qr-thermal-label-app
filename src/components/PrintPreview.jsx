@@ -10,7 +10,7 @@ import { calculateLabelLayout } from '../utils/labelLayout';
 import { usePrinter } from '../context/PrinterContext';
 import { renderLabelToCanvas, canvasToRaster } from '../utils/printHelpers'; // Unified Render Logic
 
-const DEFAULT_SIZE = { width: 55, height: 40 }; // sebelumnya 55x40 atau 80x60
+const DEFAULT_SIZE = { width: 55, height: 43 }; // sebelumnya 55x40 atau 80x60
 
 export default function PrintPreview({ data }) {
   const previewRef = useRef(null);
@@ -21,7 +21,7 @@ export default function PrintPreview({ data }) {
   // Unified Print Configuration
   const DEFAULT_CONFIG = {
     width: 55,
-    height: 40,
+    height: 43,
     gapFeed: true,
     marginTop: 0,      // Vertical Offset
     marginBottom: 0    // Spacing (Bottom Gap)
@@ -184,7 +184,7 @@ export default function PrintPreview({ data }) {
                 checked={useDefault}
                 onChange={e => setUseDefault(e.target.checked)}
               />
-              Default Size (55x40)
+              Default Size (55x43)
             </label>
 
             <div style={{ width: 1, height: 20, background: '#cbd5e1' }}></div>
@@ -267,7 +267,7 @@ export default function PrintPreview({ data }) {
         </div>
 
         <div className="size-selector">
-          <p style={{ fontSize: '0.8rem', color: '#666' }}>Default: 55 × 40 mm (thermal label)</p>
+          <p style={{ fontSize: '0.8rem', color: '#666' }}>Default: 55 × 43 mm (thermal label)</p>
         </div>
 
         <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>

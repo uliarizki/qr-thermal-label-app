@@ -158,3 +158,28 @@ export function onAuthChange(callback) {
         }
     });
 }
+/**
+ * Revoke all sessions by updating tokensValidAfter timestamp in Firestore
+ */
+export async function revokeAllSessions(uid) {
+    await updateDoc(doc(db, USERS_COLLECTION, uid), {
+        tokensValidAfter: serverTimestamp()
+    });
+}
+
+/**
+ * Subscribe to user security changes (tokensValidAfter)
+ * @param {string} uid - User ID
+ * @param {function} onRevoked - Callback when revocation is detected (timestamp)
+ * @returns {function} Unsubscribe function
+ */
+export function subscribeToUserSecurity(uid, onRevoked) {
+    return onSnapshot(doc(db, USERS_COLLECTION, uid), (doc) => {
+        if (doc.exists()) {
+            const data = doc.data();
+            if (data.tokensValidAfter) {
+                onRevoked(data.tokensValidAfter);
+            }
+        }
+    });
+}

@@ -30,8 +30,9 @@ export async function renderLabelToCanvas(data, options = { width: 50, height: 3
     ctx.fillStyle = 'black';
 
     // PADDING LOGIC (Safe Zone)
-    // Thermal printers often have 1-2mm non-printable area
-    const paddingMm = 2;
+    // Thermal printers often have 1-2mm non-printable area, but we want full control.
+    // User reported large margins, so we reset this to 0.
+    const paddingMm = 0;
     const paddingPx = Math.floor(paddingMm * DPMM);
 
     // Coordinate Transform: Shift everything by paddingPx

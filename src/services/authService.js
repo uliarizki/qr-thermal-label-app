@@ -71,3 +71,18 @@ export async function logout() {
     // Reload to reset state
     window.location.href = '/';
 }
+/**
+ * Revoke all sessions (Not supported in Sheets Auth)
+ */
+export async function revokeAllSessions(uid) {
+    console.warn('Global Logout requires Firebase Auth');
+    throw new Error('Fitur ini memerlukan database Firebase.');
+}
+
+/**
+ * Subscribe to security updates (Not supported in Sheets Auth)
+ */
+export function subscribeToUserSecurity(uid, onRevoked) {
+    // No-op for Sheets
+    return () => { };
+}
