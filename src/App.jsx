@@ -26,7 +26,7 @@ import './App.css';
 
 // Main Inner Component that uses Auth Context
 function MainApp() {
-  const { user, logout, loading } = useAuth();
+  const { user, logout, logoutAllDevices, loading } = useAuth();
   const { isOnline } = useNetworkStatus();
 
   const getStoredTab = () => {
@@ -226,6 +226,28 @@ function MainApp() {
             title="Panduan Printer"
           >
             🖨️
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm('Are you sure you want to log out all other devices?')) {
+                logoutAllDevices();
+              }
+            }}
+            style={{
+              background: 'transparent',
+              border: '1px solid #f87171',
+              color: '#f87171', // Red warning color
+              padding: '5px 10px',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: 11,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+            title="Log Out All Other Devices"
+          >
+            <Icons.Shield size={12} /> SECURE LOGOUT
           </button>
           <button
             onClick={logout}

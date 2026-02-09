@@ -23,7 +23,8 @@ export default function PrintPreview({ data }) {
     width: 55,
     height: 40,
     gapFeed: true,
-    marginTop: 0 // New: Vertical Offset
+    marginTop: 0,      // Vertical Offset
+    marginBottom: 0    // Spacing (Bottom Gap)
   };
 
   const [useDefault, setUseDefault] = useState(true);
@@ -34,9 +35,8 @@ export default function PrintPreview({ data }) {
     if (useDefault) {
       setPrintConfig(prev => ({
         ...DEFAULT_CONFIG,
-        marginTop: prev.marginTop // Keep manual offset even if default size is checked? User might want default size but custom offset.
-        // Actually, let's keep offset separate or allow editing it.
-        // Simple approach: When useDefault is true, width/height are locked.
+        marginTop: prev.marginTop,       // Keep manual offsets
+        marginBottom: prev.marginBottom
       }));
     }
   }, [useDefault]);
@@ -49,7 +49,9 @@ export default function PrintPreview({ data }) {
       // Pass marginTop to layout? 
       // We need to pass it to generateLabelPdfVector
       // generateLabelPdfVector expects sizeMm object. We can add marginTop there.
-      const configWithDefaults = useDefault ? { ...DEFAULT_CONFIG, marginTop: printConfig.marginTop } : printConfig;
+      const configWithDefaults = useDefault
+        ? { ...DEFAULT_CONFIG, marginTop: printConfig.marginTop, marginBottom: printConfig.marginBottom }
+        : printConfig;
 
       const { blob, filename } = await generateLabelPdfVector(data, {
         ...configWithDefaults,
@@ -77,7 +79,9 @@ export default function PrintPreview({ data }) {
 
     const toastId = toast.loading('Printing...');
     try {
-      const activeConfig = useDefault ? { ...DEFAULT_CONFIG, marginTop: printConfig.marginTop } : printConfig;
+      const activeConfig = useDefault
+        ? { ...DEFAULT_CONFIG, marginTop: printConfig.marginTop, marginBottom: printConfig.marginBottom }
+        : printConfig;
 
       const labelData = {
         nt: data.nt || data.nama,
@@ -91,7 +95,8 @@ export default function PrintPreview({ data }) {
       const canvas = await renderLabelToCanvas(labelData, {
         width: activeConfig.width,
         height: activeConfig.height,
-        marginTop: activeConfig.marginTop // Pass new prop
+        marginTop: activeConfig.marginTop,
+        paddingBottom: activeConfig.marginBottom // Pass Spacing as Padding Bottom
       });
 
       const canvasToRaster = (await import('../utils/printHelpers')).canvasToRaster;
@@ -233,10 +238,11 @@ export default function PrintPreview({ data }) {
           </div>
 
           {/* Row 3: Vertical Adjustment (Always Active) */}
-          <div style={{ width: '100%', borderTop: '1px dashed #cbd5e1', paddingTop: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '0.8em', color: '#64748b' }}>Alignment:</span>
+          <div style={{ width: '100%', borderTop: '1px dashed #cbd5e1', paddingTop: '8px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <span style={{ fontSize: '0.8em', color: '#64748b', minWidth: '60px' }}>Adjust:</span>
+
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Geser posisi print ke bawah (negatif = ke atas)">
-              Y-Offset (mm):
+              Y-Offset:
               <input
                 type="number"
                 value={printConfig.marginTop}
@@ -245,7 +251,18 @@ export default function PrintPreview({ data }) {
                 style={{ width: '50px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
               />
             </label>
-            <span style={{ fontSize: '0.75em', color: '#94a3b8' }}>(jika hasil kurang ke bawah, tambah nilai ini)</span>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Tambah jarak/spasi setelah label (untuk koreksi gap)">
+              Spacing:
+              <input
+                type="number"
+                value={printConfig.marginBottom}
+                onChange={e => setPrintConfig({ ...printConfig, marginBottom: Number(e.target.value) })}
+                step="0.5"
+                min="0"
+                style={{ width: '50px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+              />
+            </label>
           </div>
         </div>
 

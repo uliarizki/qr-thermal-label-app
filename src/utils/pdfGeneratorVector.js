@@ -4,18 +4,21 @@ import QRCode from 'qrcode';
 import { calculateLabelLayout } from './labelLayout';
 
 export async function generateLabelPdfVector(data, sizeMm) {
-  const { width, height } = sizeMm;
   // Standard thermal label usually 50x30, 55x40 etc.
 
   // Use 'pt' (points) for PDF standard units if possible, but mm is easier for physical labels.
   // jsPDF 'mm' unit is reliable.
 
+  const width = sizeMm.width || 50;
+  const paddingBottom = sizeMm.marginBottom || 0;
+  const height = (sizeMm.height || 30) + paddingBottom;
+
   const quantity = sizeMm.quantity || 1; // Default to 1
 
   const doc = new jsPDF({
-    unit: 'mm',
-    format: [width, height],
     orientation: 'landscape',
+    unit: 'mm',
+    format: [width, height], // Custom format
     compress: true
   });
 

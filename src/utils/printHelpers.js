@@ -12,17 +12,21 @@ export async function renderLabelToCanvas(data, options = { width: 50, height: 3
     // 8 dots/mm = 203 DPI (Standard Thermal Printer)
     // 50mm * 8 = 400 pixels
     const DPMM = 8;
+    const paddingBottomMm = options.paddingBottom || 0;
+
     const widthPx = Math.floor(options.width * DPMM);
-    const heightPx = Math.floor(options.height * DPMM);
+    const contentHeightPx = Math.floor(options.height * DPMM);
+    const paddingBottomPx = Math.floor(paddingBottomMm * DPMM);
+    const totalHeightPx = contentHeightPx + paddingBottomPx;
 
     const canvas = document.createElement('canvas');
     canvas.width = widthPx;
-    canvas.height = heightPx;
+    canvas.height = totalHeightPx;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
     // White Background
     ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, widthPx, heightPx);
+    ctx.fillRect(0, 0, widthPx, totalHeightPx);
     ctx.fillStyle = 'black';
 
     // PADDING LOGIC (Safe Zone)

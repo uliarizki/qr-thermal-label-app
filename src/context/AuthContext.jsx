@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { login as loginService, logout as logoutService } from '../services/authService';
+import { login as loginService, logout as logoutService, revokeAllSessions, subscribeToUserSecurity } from '../services/authService';
 import { validateLogin } from '../schemas/validationSchemas';
 import { ApiError } from '../services/api';
 import { logActivity } from '../utils/googleSheets';
@@ -67,6 +67,7 @@ export const AuthProvider = ({ children }) => {
             return true;
 
         } catch (error) {
+            // ... (error handling)
             // Handle validation errors
             if (error.name === 'ZodError') {
                 const firstError = error.errors[0];
@@ -82,6 +83,53 @@ export const AuthProvider = ({ children }) => {
                 console.error('Login error:', error);
             }
             return false;
+        }
+    };
+
+    // Subscribe to Security Updates (Global Logout)
+    useEffect(() => {
+        let unsubscribe = null;
+        if (user && user.uid) {
+            unsubscribe = subscribeToUserSecurity(user.uid, (timestamp) => {
+                // Determine invalidation time
+                if (!timestamp) return;
+
+                // Firestore timestamp to Milliseconds
+                const invalidationTime = timestamp.toMillis ? timestamp.toMillis() : new Date(timestamp).getTime();
+                const loginTimeStr = localStorage.getItem('qr:auth_time');
+                const loginTime = loginTimeStr ? parseInt(loginTimeStr, 10) : 0;
+
+                // Debug log
+                // console.log('Checking security:', { invalidationTime, loginTime, diff: loginTime - invalidationTime });
+
+                // If login was BEFORE invalidation time, force logout
+                // Give 5 seconds buffer to avoid instant logout on the device that triggered it (if clock drift)
+                if (loginTime < invalidationTime - 5000) {
+                    toast.error('Session expired. Please login again.', { id: 'session-expired' });
+                    logout(false); // logout without logging activity (optional)
+                }
+            });
+        }
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [user]);
+
+    const logoutAllDevices = async () => {
+        if (!user) return;
+        const toastId = toast.loading('Logging out all devices...');
+        try {
+            await revokeAllSessions(user.uid);
+            toast.success('All other devices have been logged out.', { id: toastId });
+            // Optionally update local auth time to avoid self-logout?
+            // Actually, if we update auth_time here, we stay logged in.
+            // But strict security might imply we should re-login too?
+            // User request usually implies "kick others out".
+            // Let's update local auth_time to NOW so we survive the check.
+            localStorage.setItem('qr:auth_time', Date.now().toString());
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to logout devices', { id: toastId });
         }
     };
 
@@ -143,7 +191,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, logout, logoutAllDevices, loading }}>
             {children}
         </AuthContext.Provider>
     );
