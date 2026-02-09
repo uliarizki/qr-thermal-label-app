@@ -190,11 +190,24 @@ export default function PrintPreview({ data }) {
             <div style={{ width: 1, height: 20, background: '#cbd5e1' }}></div>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Qty:
+              Jumlah:
               <input
                 type="number"
                 value={quantity}
-                onChange={e => setQuantity(Math.max(1, Number(e.target.value)))}
+                onChange={e => {
+                  const val = e.target.value;
+                  // Allow empty string to let user delete current value
+                  if (val === '') {
+                    setQuantity('');
+                  } else {
+                    const num = parseInt(val, 10);
+                    if (!isNaN(num)) setQuantity(num);
+                  }
+                }}
+                onBlur={() => {
+                  // Reset to 1 if empty or invalid on blur
+                  if (quantity === '' || quantity < 1) setQuantity(1);
+                }}
                 min="1"
                 max="100"
                 style={{ width: '45px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'center' }}
@@ -399,7 +412,7 @@ const measureTextBrowser = (text, fontSizePt, isBold) => {
   const context = canvas.getContext('2d');
   // conversion: 1pt approx 1.333px, 1mm approx 3.78px
   const fontSizePx = fontSizePt * 1.333;
-  context.font = `${isBold ? 'bold ' : ''}${fontSizePx}px Helvetica, Arial, sans-serif`;
+  context.font = `${isBold ? 'bold ' : ''}${fontSizePx}px Arial, sans-serif`;
   const widthPx = context.measureText(text).width;
   return (widthPx / 3.78) * 1.1; // +10% buffer to be safe vs PDF rendering
 };

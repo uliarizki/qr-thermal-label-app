@@ -53,7 +53,7 @@ export async function renderLabelToCanvas(data, options = { width: 50, height: 3
 
         // We'll set font and measure
         const fontSizePx = (fontSizePts / 72) * 203; // Convert pt to printer pixels
-        ctx.font = `${isBold ? 'bold' : ''} ${fontSizePx}px Helvetica`;
+        ctx.font = `${isBold ? 'bold' : ''} ${fontSizePx}px Arial`; // Use Arial to match drawText
         return ctx.measureText(text).width / DPMM; // Return widths in MM for the layout engine
     };
 
@@ -85,7 +85,7 @@ export async function renderLabelToCanvas(data, options = { width: 50, height: 3
     const drawText = (item, textContent) => {
         if (!textContent) return;
         const fontSizePx = (item.fontSize / 72) * 203;
-        ctx.font = `${item.isBold ? 'bold' : ''} ${fontSizePx}px Arial`; // Match Windows Font
+        ctx.font = `${item.isBold ? 'bold' : ''} ${fontSizePx}px Arial`; // Match measureText
         // Fix baseline to match jsPDF (alphabetic)
         ctx.textBaseline = 'alphabetic';
         ctx.fillText(textContent, mm(item.x), mm(item.y));
