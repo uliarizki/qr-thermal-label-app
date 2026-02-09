@@ -13,13 +13,16 @@ export const LAYOUT_CONSTANTS = {
  * @param {Function} measureTextFn - Function(text, fontSize, isBold) => width in mm.
  * @returns {Object} Layout instructions (positions, font sizes, lines).
  */
-export function calculateLabelLayout(data, measureTextFn) {
+export function calculateLabelLayout(data, measureTextFn, config = {}) {
     const { WIDTH, HEIGHT, PADDING, GAP, QR_SIZE } = LAYOUT_CONSTANTS;
+
+    // Vertical Offset (Y-Offset) handling
+    const marginTop = config.marginTop || 0;
 
     // 1. QR Code Position (Top-Left)
     const qr = {
         x: PADDING,
-        y: PADDING,
+        y: PADDING + marginTop, // Apply Offset
         size: QR_SIZE,
     };
 
@@ -32,14 +35,14 @@ export function calculateLabelLayout(data, measureTextFn) {
         fontSize: idFontSize,
         isBold: true,
         x: qr.x + (qr.size / 2) - (idWidth / 2),
-        y: qr.y + qr.size + 3.5, // 3.5mm below QR
+        y: qr.y + qr.size + 3.5, // Relative to QR, so offset is inherited
     };
 
     // 3. Right Side Content Calculation
     const contentX = PADDING + QR_SIZE + GAP;
     const maxContentWidth = WIDTH - contentX - 1; // 1mm right padding
 
-    let currentY = PADDING + 3; // Start Y for text
+    let currentY = PADDING + 3 + marginTop; // Start Y for text + Offset
 
     // Helper to calculate lines and font size (Smart Text Logic)
     const resolveSmartText = (text, defaultSize, minSize, isBold, maxLinesLimit = 3) => {

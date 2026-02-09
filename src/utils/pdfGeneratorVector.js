@@ -33,7 +33,8 @@ export async function generateLabelPdfVector(data, sizeMm) {
     return doc.getTextWidth(text);
   };
 
-  const layout = calculateLabelLayout(data, measureText);
+  // Calculate Layout
+  const layout = calculateLabelLayout(data, measureText, sizeMm);
   const { qr, id, name, city, sales, branch } = layout;
 
   // Pre-generate QR Data URL once
