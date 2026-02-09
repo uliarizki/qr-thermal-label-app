@@ -60,6 +60,10 @@ export const AuthProvider = ({ children }) => {
 
             toast.success(`Welcome back, ${userData.username}!`, { id: toastId });
             logActivity(userData.username, 'LOGIN', { timestamp: new Date() });
+
+            // Check for App Update (Auto-Reload if version mismatch)
+            checkAppVersion();
+
             return true;
 
         } catch (error) {
@@ -96,6 +100,46 @@ export const AuthProvider = ({ children }) => {
         setTimeout(() => {
             window.location.reload();
         }, 500);
+    };
+
+    /**
+     * Check if the client version matches the server version.
+     * If not, force a hard reload to clear cache.
+     */
+    const checkAppVersion = async () => {
+        try {
+            const response = await fetch('/version.json?t=' + Date.now());
+            if (!response.ok) return;
+
+            const serverVersion = await response.json();
+            const localVersion = localStorage.getItem('qr:app_version');
+
+            if (localVersion && localVersion !== serverVersion.timestamp.toString()) {
+                console.log('New version detected. Reloading...');
+                toast.success('Updating app to latest version...', { duration: 2000 });
+
+                // Clear cache and reload
+                localStorage.setItem('qr:app_version', serverVersion.timestamp.toString());
+
+                // Unregister service workers if any
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                        for (let registration of registrations) {
+                            registration.unregister();
+                        }
+                    });
+                }
+
+                setTimeout(() => {
+                    window.location.reload(true);
+                }, 1500);
+            } else {
+                // First time or same version
+                localStorage.setItem('qr:app_version', serverVersion.timestamp.toString());
+            }
+        } catch (error) {
+            console.error('Failed to check app version', error);
+        }
     };
 
     return (

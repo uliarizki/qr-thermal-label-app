@@ -15,17 +15,15 @@ const DEFAULT_SIZE = { width: 55, height: 40 }; // sebelumnya 55x40 atau 80x60
 export default function PrintPreview({ data }) {
   const previewRef = useRef(null);
   const { isConnected, isConnecting, connect, print, connectionType } = usePrinter();
-  const [customWidth, setCustomWidth] = useState(DEFAULT_SIZE.width);
-  const [customHeight, setCustomHeight] = useState(DEFAULT_SIZE.height);
-  const [useCustom, setUseCustom] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false); // Status: false -> 'loading' -> 'success'
   const [quantity, setQuantity] = useState(1);
 
-  const currentSize = useCustom
-    ? { width: customWidth, height: customHeight }
-    : DEFAULT_SIZE;
-
-
+  // Unified Print Configuration
+  const [printConfig, setPrintConfig] = useState({
+    width: 55,      // mm (Default Thermal Label)
+    height: 40,     // mm
+    gapFeed: true   // Send Form Feed (0x0C)
+  });
 
   const handlePrint = async () => {
     if (isPrinting) return;
@@ -33,7 +31,7 @@ export default function PrintPreview({ data }) {
     setIsPrinting('loading');
     try {
       // Generate blob, function inside now handles return based on arg
-      const { blob, filename } = await generateLabelPdfVector(data, { ...currentSize, quantity, returnBlob: true });
+      const { blob, filename } = await generateLabelPdfVector(data, { ...printConfig, quantity, returnBlob: true });
 
       downloadBlob(blob, filename);
 
@@ -46,14 +44,6 @@ export default function PrintPreview({ data }) {
       toast.error('Gagal generate PDF');
     }
   }
-
-
-  // Print Configuration State (Unified with Batch)
-  const [printConfig, setPrintConfig] = useState({
-    width: 50,      // mm
-    height: 30,     // mm
-    gapFeed: true   // Send Form Feed (0x0C)
-  });
 
   const handleDirectPrint = async () => {
     if (!isConnected) {
@@ -83,6 +73,7 @@ export default function PrintPreview({ data }) {
       });
 
       // 3. Convert to Raster (Bytes)
+      const canvasToRaster = (await import('../utils/printHelpers')).canvasToRaster;
       const rasterData = canvasToRaster(canvas);
 
       // 4. Append Form Feed (if enabled)
@@ -111,7 +102,7 @@ export default function PrintPreview({ data }) {
   const handleShare = async () => {
     const toastId = toast.loading('Generating PDF...');
     try {
-      const { blob, filename } = await generateLabelPdfVector(data, { ...currentSize, quantity, returnBlob: true });
+      const { blob, filename } = await generateLabelPdfVector(data, { ...printConfig, quantity, returnBlob: true });
 
       await shareOrDownload(blob, filename, 'Label PDF', 'Print using Rongta/Thermal Printer App', 'application/pdf');
       toast.dismiss(toastId); // Dismiss loading toast on success
@@ -132,13 +123,13 @@ export default function PrintPreview({ data }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPrinting, customWidth, customHeight, useCustom, data]);
+  }, [isPrinting, printConfig, quantity, data]);
 
   const maxPreviewWidthPx = 260; // kira2 lebar card, bisa kamu geser
   const mmToPx = 4;              // asumsi 1mm ≈ 4px di layar
 
   const previewScale = Math.min(
-    maxPreviewWidthPx / (currentSize.width * mmToPx),
+    maxPreviewWidthPx / (printConfig.width * mmToPx),
     1
   );
 
@@ -207,41 +198,7 @@ export default function PrintPreview({ data }) {
         </div>
 
         <div className="size-selector">
-          <p>Default: 55 × 40 mm (thermal label)</p>
-
-          <label>
-            <input
-              type="checkbox"
-              checked={useCustom}
-              onChange={(e) => setUseCustom(e.target.checked)}
-            />
-            Custom size (mm)
-          </label>
-
-          {useCustom && (
-            <div className="custom-inputs">
-              <div>
-                <label>Lebar:</label>
-                <input
-                  type="number"
-                  value={customWidth}
-                  onChange={(e) => setCustomWidth(Number(e.target.value))}
-                  min="40"
-                  max="100"
-                />
-              </div>
-              <div>
-                <label>Tinggi:</label>
-                <input
-                  type="number"
-                  value={customHeight}
-                  onChange={(e) => setCustomHeight(Number(e.target.value))}
-                  min="20"
-                  max="80"
-                />
-              </div>
-            </div>
-          )}
+          <p style={{ fontSize: '0.8rem', color: '#666' }}>Default: 55 × 40 mm (thermal label)</p>
         </div>
 
         <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
@@ -343,8 +300,8 @@ export default function PrintPreview({ data }) {
             ref={previewRef}
             className="label-root"
             style={{
-              width: `${currentSize.width}mm`,
-              height: `${currentSize.height}mm`,
+              width: `${printConfig.width}mm`,
+              height: `${printConfig.height}mm`,
               padding: '0mm',
               background: 'white',
               boxSizing: 'border-box',
@@ -352,11 +309,11 @@ export default function PrintPreview({ data }) {
               transformOrigin: 'top left',
             }}
           >
-            <LabelContent data={data} labelSize={currentSize} />
+            <LabelContent data={data} labelSize={printConfig} />
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 
