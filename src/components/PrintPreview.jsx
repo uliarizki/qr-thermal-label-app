@@ -19,6 +19,7 @@ export default function PrintPreview({ data }) {
   const [customHeight, setCustomHeight] = useState(DEFAULT_SIZE.height);
   const [useCustom, setUseCustom] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false); // Status: false -> 'loading' -> 'success'
+  const [quantity, setQuantity] = useState(1);
 
   const currentSize = useCustom
     ? { width: customWidth, height: customHeight }
@@ -32,7 +33,7 @@ export default function PrintPreview({ data }) {
     setIsPrinting('loading');
     try {
       // Generate blob, function inside now handles return based on arg
-      const { blob, filename } = await generateLabelPdfVector(data, { ...currentSize, returnBlob: true });
+      const { blob, filename } = await generateLabelPdfVector(data, { ...currentSize, quantity, returnBlob: true });
 
       downloadBlob(blob, filename);
 
@@ -94,8 +95,11 @@ export default function PrintPreview({ data }) {
         finalData = combined;
       }
 
-      // 5. Send
-      await print(finalData);
+      // 5. Send (Loop based on Quantity)
+      for (let i = 0; i < quantity; i++) {
+        await print(finalData);
+        // Small delay between jobs if needed? Usually not for USB/BT specific connection but safe.
+      }
       toast.success('Sent to Printer', { id: toastId });
 
     } catch (err) {
@@ -107,7 +111,7 @@ export default function PrintPreview({ data }) {
   const handleShare = async () => {
     const toastId = toast.loading('Generating PDF...');
     try {
-      const { blob, filename } = await generateLabelPdfVector(data, { ...currentSize, returnBlob: true });
+      const { blob, filename } = await generateLabelPdfVector(data, { ...currentSize, quantity, returnBlob: true });
 
       await shareOrDownload(blob, filename, 'Label PDF', 'Print using Rongta/Thermal Printer App', 'application/pdf');
       toast.dismiss(toastId); // Dismiss loading toast on success
@@ -160,7 +164,20 @@ export default function PrintPreview({ data }) {
           alignItems: 'center',
           fontSize: '0.85rem'
         }}>
-          <div style={{ fontWeight: '600', color: '#475569' }}>Config:</div>
+          <div style={{ fontWeight: '600', color: '#475569' }}>Settings:</div>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            Qty:
+            <input
+              type="number"
+              value={quantity}
+              onChange={e => setQuantity(Math.max(1, Number(e.target.value)))}
+              min="1"
+              max="100"
+              style={{ width: '45px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', textAlign: 'center' }}
+            />
+          </label>
+
           <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             W (mm):
             <input
