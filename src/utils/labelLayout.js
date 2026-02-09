@@ -164,7 +164,7 @@ export function calculateLabelLayout(data, measureTextFn) {
         text: branchText,
         fontSize: 10,
         isBold: true,
-        x: WIDTH - branchWidth, // No right margin
+        x: contentX, // Left align with other content
         y: branchY, // Always >= id.y
     };
 
