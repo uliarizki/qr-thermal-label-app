@@ -42,8 +42,8 @@ export function calculateLabelLayout(data, measureTextFn, config = {}) {
     const contentX = PADDING + QR_SIZE + GAP;
     // Printer Hardware Margin Safety: 
     // Even if label is 55mm, printer might only print up to 52mm.
-    // Increased safety margin from 1mm to 3mm to prevent clipping on the right.
-    const maxContentWidth = WIDTH - contentX - 3;
+    // Increased safety margin from 1mm -> 3mm -> 3.5mm (User Request: "dikit lagi")
+    const maxContentWidth = WIDTH - contentX - 3.5;
 
     let currentY = PADDING + 3 + marginTop; // Start Y for text + Offset
 
