@@ -54,7 +54,8 @@ export async function renderLabelToCanvas(data, options = { width: 50, height: 3
         // We'll set font and measure
         const fontSizePx = (fontSizePts / 72) * 203; // Convert pt to printer pixels
         ctx.font = `${isBold ? 'bold' : ''} ${fontSizePx}px Arial`; // Use Arial to match drawText
-        return ctx.measureText(text).width / DPMM; // Return widths in MM for the layout engine
+        const widthMm = ctx.measureText(text).width / DPMM;
+        return widthMm * 1.1; // Match PrintPreview's safety buffer to ensure identical wrapping
     };
 
     // 2. Calculate Layout
