@@ -228,11 +228,7 @@ function MainApp() {
             🖨️
           </button>
           <button
-            onClick={() => {
-              if (window.confirm('Are you sure you want to log out all other devices?')) {
-                logoutAllDevices();
-              }
-            }}
+            onClick={logoutAllDevices}
             style={{
               background: 'transparent',
               border: '1px solid #f87171',

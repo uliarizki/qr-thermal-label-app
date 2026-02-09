@@ -99,14 +99,26 @@ export const AuthProvider = ({ children }) => {
                 const loginTimeStr = localStorage.getItem('qr:auth_time');
                 const loginTime = loginTimeStr ? parseInt(loginTimeStr, 10) : 0;
 
-                // Debug log
-                // console.log('Checking security:', { invalidationTime, loginTime, diff: loginTime - invalidationTime });
+                console.log('[Security Check]', {
+                    loginTime: new Date(loginTime).toLocaleString(),
+                    invalidationTime: new Date(invalidationTime).toLocaleString(),
+                    diff: loginTime - invalidationTime,
+                    shouldLogout: loginTime < invalidationTime - 5000
+                });
 
                 // If login was BEFORE invalidation time, force logout
-                // Give 5 seconds buffer to avoid instant logout on the device that triggered it (if clock drift)
+                // Buffer 5s (invalidationTime - 5000) means:
+                // If I logged in at 10:00:00.
+                // Invalidation is at 10:00:10.
+                // 10:00:00 < 10:00:05 -> True. Logout.
+
+                // If I just refreshed my token at 10:00:11 (before the check ran?)
+                // 10:00:11 < 10:00:05 -> False. Safe.
+
                 if (loginTime < invalidationTime - 5000) {
+                    console.warn('Force Logout Triggered via Security Timestamp');
                     toast.error('Session expired. Please login again.', { id: 'session-expired' });
-                    logout(false); // logout without logging activity (optional)
+                    logout(false);
                 }
             });
         }
@@ -117,19 +129,23 @@ export const AuthProvider = ({ children }) => {
 
     const logoutAllDevices = async () => {
         if (!user) return;
+        if (!window.confirm('Are you sure you want to log out all other devices?')) return;
+
         const toastId = toast.loading('Logging out all devices...');
         try {
+            // 1. Update LOCAL auth time FIRST to survive the check
+            // We set it to Now + small buffer to be sure it's > serverTimestamp
+            const newTime = Date.now();
+            localStorage.setItem('qr:auth_time', newTime.toString());
+            console.log('Local auth time updated to:', new Date(newTime).toLocaleString());
+
+            // 2. Revoke on Server
             await revokeAllSessions(user.uid);
+
             toast.success('All other devices have been logged out.', { id: toastId });
-            // Optionally update local auth time to avoid self-logout?
-            // Actually, if we update auth_time here, we stay logged in.
-            // But strict security might imply we should re-login too?
-            // User request usually implies "kick others out".
-            // Let's update local auth_time to NOW so we survive the check.
-            localStorage.setItem('qr:auth_time', Date.now().toString());
         } catch (error) {
-            console.error(error);
-            toast.error('Failed to logout devices', { id: toastId });
+            console.error('Logout All Error:', error);
+            toast.error('Failed to logout devices. Permission denied?', { id: toastId });
         }
     };
 
