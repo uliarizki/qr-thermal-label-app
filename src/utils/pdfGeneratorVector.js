@@ -30,10 +30,19 @@ export async function generateLabelPdfVector(data, sizeMm) {
   });
 
   // ---- Unified Layout Engine ----
+  // Fix: Use Canvas measurement with Arial (same as Print/Preview) to ensure identical layout.
+  // Rendering will still be Helvetica (closest PDF standard), but line breaks will match.
   const measureText = (text, fontSize, isBold) => {
-    doc.setFontSize(fontSize);
-    doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-    return doc.getTextWidth(text);
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    // Calibration: Match printHelpers.js logic
+    // 1pt = 1.333px (96dpi) -> 203dpi scale isn't needed here if we are consistent.
+    // Let's use the Browser measure logic from PrintPreview.jsx:
+    // conversion: 1pt approx 1.333px, 1mm approx 3.78px
+    const fontSizePx = fontSize * 1.333;
+    context.font = `${isBold ? 'bold ' : ''}${fontSizePx}px Arial, sans-serif`;
+    const widthPx = context.measureText(text).width;
+    return (widthPx / 3.78) * 1.1; // +10% buffer matches PrintPreview logic
   };
 
   // Calculate Layout
