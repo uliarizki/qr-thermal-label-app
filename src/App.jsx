@@ -227,6 +227,7 @@ function MainApp() {
           >
             🖨️
           </button>
+          {/* SECURE LOGOUT - Hidden until Firebase Migration
           <button
             onClick={logoutAllDevices}
             style={{
@@ -245,6 +246,7 @@ function MainApp() {
           >
             <Icons.Shield size={12} /> SECURE LOGOUT
           </button>
+          */}
           <button
             onClick={logout}
             style={{
