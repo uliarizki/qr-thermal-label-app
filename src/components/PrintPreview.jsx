@@ -10,7 +10,7 @@ import { calculateLabelLayout } from '../utils/labelLayout';
 import { usePrinter } from '../context/PrinterContext';
 import { renderLabelToCanvas, canvasToRaster } from '../utils/printHelpers'; // Unified Render Logic
 
-const DEFAULT_SIZE = { width: 55, height: 43 }; // sebelumnya 55x40 atau 80x60
+const DEFAULT_SIZE = { width: 55, height: 42.5 }; // sebelumnya 55x40 atau 80x60
 
 export default function PrintPreview({ data }) {
   const previewRef = useRef(null);
@@ -21,7 +21,7 @@ export default function PrintPreview({ data }) {
   // Unified Print Configuration
   const DEFAULT_CONFIG = {
     width: 55,
-    height: 43,
+    height: 42.5,
     gapFeed: true,
     marginTop: 0,      // Vertical Offset
     marginBottom: 0    // Spacing (Bottom Gap)
@@ -122,16 +122,26 @@ export default function PrintPreview({ data }) {
     }
   };
 
-  // ... (handleShare remains similar, update config usage)
   const handleShare = async () => {
-    const activeConfig = useDefault ? { ...DEFAULT_CONFIG, marginTop: printConfig.marginTop } : printConfig;
-    // ... same logic
-    // Shortened for brevity in tool call, implementation should include full function body if replacing whole block
-    // But since I'm replacing lines 21-46 (states & logic), I need to be careful.
-    // Let's refine the tool call to target STATE and UI separately if possible, or do big chunk.
-    // I will do a larger chunk replacement for State + Logic.
-  };
+    const activeConfig = useDefault
+      ? { ...DEFAULT_CONFIG, marginTop: printConfig.marginTop, marginBottom: printConfig.marginBottom }
+      : printConfig;
 
+    const toastId = toast.loading('Generating for share...');
+    try {
+      const { blob, filename } = await generateLabelPdfVector(data, {
+        ...activeConfig,
+        quantity,
+        returnBlob: true
+      });
+
+      await shareOrDownload(blob, filename);
+      toast.dismiss(toastId);
+    } catch (err) {
+      console.error('Share error:', err);
+      toast.error('Gagal share PDF', { id: toastId });
+    }
+  };
 
   // Keyboard Shortcut
   useEffect(() => {
@@ -139,12 +149,12 @@ export default function PrintPreview({ data }) {
       // Check for Ctrl+P or Command+P
       if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
         e.preventDefault();
-        handlePrint(); // Now handlePrint is defined in scope
+        handlePrint();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPrinting, printConfig, quantity, data]);
+  }, [isPrinting, printConfig, quantity, data, useDefault]);
 
   const maxPreviewWidthPx = 260; // kira2 lebar card, bisa kamu geser
   const mmToPx = 4;              // asumsi 1mm ≈ 4px di layar
@@ -184,7 +194,7 @@ export default function PrintPreview({ data }) {
                 checked={useDefault}
                 onChange={e => setUseDefault(e.target.checked)}
               />
-              Default Size (55x43)
+              Default Size (55x42.5)
             </label>
 
             <div style={{ width: 1, height: 20, background: '#cbd5e1' }}></div>
@@ -215,7 +225,7 @@ export default function PrintPreview({ data }) {
             </label>
           </div>
 
-          {/* Row 2: Advanced Dimensions (Hidden if Default, or disabled?) -> Let's show but disable if Default */}
+          {/* Row 2: Advanced Dimensions */}
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center', opacity: useDefault ? 0.6 : 1, pointerEvents: useDefault ? 'none' : 'auto' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               W:
@@ -231,7 +241,7 @@ export default function PrintPreview({ data }) {
               H:
               <input
                 type="number"
-                value={useDefault ? 43 : printConfig.height}
+                value={useDefault ? 42.5 : printConfig.height}
                 onChange={e => setPrintConfig({ ...printConfig, height: Number(e.target.value) })}
                 style={{ width: '45px', padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
                 disabled={useDefault}
@@ -242,9 +252,6 @@ export default function PrintPreview({ data }) {
                 type="checkbox"
                 checked={printConfig.gapFeed}
                 onChange={e => setPrintConfig({ ...printConfig, gapFeed: e.target.checked })}
-              // Re-reading logic: configWithDefaults uses DEFAULT_CONFIG which has gapFeed: true. 
-              // To allow toggling gap feed while keeping default size, we need to decouple them.
-              // Let's just disable W/H but keep Gap/Offset active.
               />
               Gap Feed
             </label>
@@ -280,7 +287,7 @@ export default function PrintPreview({ data }) {
         </div>
 
         <div className="size-selector">
-          <p style={{ fontSize: '0.8rem', color: '#666' }}>Default: 55 × 43 mm (thermal label)</p>
+          <p style={{ fontSize: '0.8rem', color: '#666' }}>Default: 55 × 42.5 mm (thermal label)</p>
         </div>
 
         <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
@@ -290,8 +297,8 @@ export default function PrintPreview({ data }) {
             className="print-btn"
             disabled={isConnecting}
             style={{
-              flex: 1.5, // Make it prominent
-              background: isConnected ? '#10b981' : '#4f46e5', // Green if connected, Blue if not
+              flex: 1.5,
+              background: isConnected ? '#10b981' : '#4f46e5',
               color: 'white',
               display: 'flex',
               alignItems: 'center',
@@ -383,7 +390,7 @@ export default function PrintPreview({ data }) {
             className="label-root"
             style={{
               width: `${(useDefault ? 55 : printConfig.width)}mm`,
-              height: `${(useDefault ? 40 : printConfig.height)}mm`,
+              height: `${(useDefault ? 42.5 : printConfig.height)}mm`,
               padding: '0mm',
               background: 'white',
               boxSizing: 'border-box',
@@ -393,7 +400,7 @@ export default function PrintPreview({ data }) {
           >
             <LabelContent
               data={data}
-              labelSize={useDefault ? { ...printConfig, width: 55, height: 43 } : printConfig}
+              labelSize={useDefault ? { ...printConfig, width: 55, height: 42.5 } : printConfig}
             />
           </div>
         </div>
